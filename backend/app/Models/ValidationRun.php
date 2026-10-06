@@ -11,7 +11,7 @@ final class ValidationRun extends Model
     protected $fillable = [
         'filename','file_hash','source_path','corrected_path','corrected_hash','size_bytes','annex','status',
         'progress','records','processed_records','total_records','rules_loaded','error_count','warning_count',
-        'result_count','results','validated_at','started_at','completed_at','error_message',
+        'result_count','results','validated_at','started_at','completed_at','error_message','job_id',
     ];
 
     protected $casts = [
