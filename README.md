@@ -22,6 +22,36 @@ Construir un validador web basado en la estructura oficial del anexo técnico, c
 - **Procesamiento:** colas con Redis para archivos grandes.
 - **Reglas:** motor de validación parametrizado y versionado.
 
+## Fuente normativa
+
+La base funcional se construye a partir de la Resolución 202 de 2021 y del archivo oficial de lineamientos v8 entregado para el proyecto. El Anexo Técnico 1 define el Registro por Persona (RPED) y el Anexo Técnico 2 el Registro de Novedades por Persona (NPED).
+
+## Catálogo RPED
+
+El catálogo reproducible se genera con `tools/import_res202_catalog.py` a partir de la hoja `Lineamientos RPED` del Excel oficial.
+
+- 119 variables RPED, numeradas de 0 a 118.
+- Catálogo de reglas `Error` y `Warning` separado del código de aplicación.
+- Reglas versionadas con `source_version=v8`.
+- Corrección automática desactivada por defecto; se habilitará regla por regla después de verificar que sea segura.
+
+## Validación estructural
+
+Se incorporó `backend/app/Domain/Res202/Validation/StructuralValidator.php` para la primera capa del motor:
+
+1. Archivo no vacío.
+2. Registro tipo 1 obligatorio y primero.
+3. Registro tipo 1 con 5 campos.
+4. Registros tipo 2 con 119 campos.
+5. Consecutivo de detalle desde 1 y en orden.
+6. Cantidad declarada en el registro de control contra registros tipo 2.
+7. Longitud máxima por variable.
+8. Validación básica de tipos N, D y F.
+9. Fechas con formato `AAAA-MM-DD`.
+10. Detección de caracteres especiales de fin de archivo/registro.
+
+Esta capa es independiente del catálogo de reglas de negocio para permitir que el motor posterior sea parametrizado.
+
 ## Principios
 
 1. Las reglas se derivan del anexo técnico oficial.
@@ -35,11 +65,12 @@ Construir un validador web basado en la estructura oficial del anexo técnico, c
 ```text
 backend/       API Laravel
 frontend/      SPA Vue 3
- database/     SQL y documentación de base de datos
+database/      SQL y catálogos
 docs/          Arquitectura, reglas y decisiones técnicas
+tools/         Importadores reproducibles
 tests/         Casos de prueba
 ```
 
 ## Estado
 
-Proyecto inicializado. El siguiente paso es cargar la matriz oficial de variables y construir el catálogo de reglas de la Resolución 202.
+**Fase 1 en desarrollo:** catálogo oficial RPED y primera capa de validación estructural implementados. El siguiente paso es conectar el catálogo de reglas al motor Laravel y crear pruebas contra archivos TXT reales.
