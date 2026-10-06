@@ -1,0 +1,120 @@
+number,group,name,length,type
+0,Tipo de registro,Tipo de registro,1,N
+1,Identificación,Consecutivo de registro,8,N
+2,Identificación,Código de habilitación IPS primaria,12,N
+3,Identificación,Tipo de identificación del usuario,2,A
+4,Identificación,Número de identificación del usuario,18,A
+5,Identificación,Primer apellido del usuario,30,A
+6,Identificación,Segundo apellido del usuario,30,A
+7,Identificación,Primer nombre del usuario,30,A
+8,Identificación,Segundo nombre del usuario,30,A
+9,Identificación,Fecha de Nacimiento,10,F
+10,Identificación,Sexo,1,A
+11,Identificación,Código pertenencia étnica,1,N
+12,Identificación,Código de ocupación (toda la población),4,N
+13,Identificación,Código de nivel educativo (toda la población),2,N
+14,Gestación,Gestante,2,N
+15,No aplica para el reporte,Sífilis Gestacional o congénita,2,N
+16,Test vejez (>=60 años),Resultado de prueba mini-mental state,2,N
+17,No aplica para el reporte,Hipotiroidismo Congénito,2,N
+18,Tuberculosis,Sintomático respiratorio (toda la población),2,N
+19,Riesgo cardiovascular y metabólico,Consumo de tabaco,2,N
+20,No aplica para el reporte,Lepra,2,N
+21,No aplica para el reporte,Obesidad o Desnutrición Proteico Calórica,2,N
+22,,Resultado del tacto rectal,2,N
+23,Gestación,Acido fólico preconcepcional,2,N
+24,Ca de colon,Resultado de la prueba de sangre oculta en materia fecal (tamizaje Ca de colon),2,N
+25,No aplica para el reporte,Enfermedad Mental,2,N
+26,No aplica para el reporte,Cáncer de Cérvix,2,N
+27,Agudeza visual,Agudeza visual lejana ojo izquierdo,2,N
+28,Agudeza visual,Agudeza visual lejana ojo derecho,2,N
+29,Toda la población,Fecha del peso (Toda la población),10,F
+30,Toda la población,Peso en Kilogramos (Toda la población),5,D
+31,Toda la población,Fecha de la talla (Toda la población),10,F
+32,Toda la población,Talla en centímetros (Toda la población),3,N
+33,Gestación,Fecha probable de parto,10,F
+34,Identificación,Código país,3,N
+35,Gestación,Clasificación del riesgo gestacional,2,N
+36,Ca de colon,Resultado de colonoscopia tamizaje,2,N
+37,Recién nacido,Resultado de tamizaje auditivo neonatal,2,N
+38,Recién nacido,Resultado de tamizaje visual neonatal,2,N
+39,No aplica para el reporte,DPT menores de 5 años,2,N
+40,Test 0 a 12 años,Resultado de tamizaje VALE,2,N
+41,No aplica para el reporte,Neumococo,2,N
+42,Toda la población,Resultado de tamizaje para hepatitis C,2,N
+43,Test 0 a 7 años,Resultado de escala abreviada de desarrollo área de motricidad gruesa,2,N
+44,Test 0 a 7 años,Resultado de escala abreviada de desarrollo área de motricidad finoadaptativa,2,N
+45,Test 0 a 7 años,Resultado de escala abreviada de desarrollo área personal social,2,N
+46,Test 0 a 7 años,Resultado de escala abreviada de desarrollo área de motricidad audición lenguaje,2,N
+47,Ca cervix,Tratamiento ablativo o de escisión posterior a la realización de la técnica de inspección visual (Crioterapia o LETZ),2,N
+48,Recién nacido,Resultado de tamización con oximetría pre y post ductal,2,N
+49,Gestación,Fecha de atención parto o cesárea,10,F
+50,Gestación,Fecha de salida de atención parto o cesárea,10,F
+51,Gestación y hasta menos de 7 meses,Fecha de atención en salud para la promoción y apoyo de la lactancia materna,10,F
+52,Toda la población,Fecha de consulta de valoración integral,10,F
+53,Anticoncepción 10 a 60 años,Fecha de atención en salud para la asesoría en anticoncepción,10,F
+54,Anticoncepción 10 a 60 años,Suministro de método anticonceptivo,2,N
+55,Anticoncepción 10 a 60 años,Fecha de suministro de método anticonceptivo,10,F
+56,Gestación,Fecha de primera consulta prenatal,10,F
+57,Riesgo cardiovascular y metabólico,Resultado de glicemia basal,3,N
+58,Gestación,Fecha de último control prenatal de seguimiento,10,F
+59,Gestación,Suministro de ácido fólico en el control prenatal durante el periodo reportado,2,N
+60,Gestación,Suministro de sulfato ferroso en el control prenatal durante el periodo reportado,2,N
+61,Gestación,Suministro de carbonato de calcio en el control prenatal durante el periodo reportado,2,N
+62,Agudeza visual,Fecha de valoración agudeza visual,10,F
+63,Test 0 a 12 años,Fecha de tamizaje VALE,10,F
+64,Ca de próstata,Fecha del tacto rectal,10,F
+65,Recién nacido,Fecha de tamización con oximetría pre y post ductal,10,F
+66,Ca de colon,Fecha de realización colonoscopia tamizaje,10,F
+67,Ca de colon,Fecha de la prueba sangre oculta en materia fecal (tamizaje Ca de colon),10,F
+68,No aplica para el reporte,Consulta de Psicología,10,F
+69,Recién nacido,Fecha de tamizaje auditivo neonatal,10,F
+70,Primera infancia,Suministro de fortificación casera en la primera infancia (6 a 23 meses),2,N
+71,Primera infancia,Suministro de vitamina A en la primera infancia (24 a 60 meses),2,N
+72,Riesgo cardiovascular y metabólico,Fecha de toma LDL,10,F
+73,Ca de próstata,Fecha de toma PSA,10,F
+74,No aplica para el reporte,Preservativos entregados a pacientes con ITS,3,N
+75,Recién nacido,Fecha de tamizaje visual neonatal,10,F
+76,COP,Fecha de atención en salud bucal por profesional en odontología,10,F
+77,Primera infancia,Suministro de hierro en la primera Infancia (24 a 59 meses),2,N
+78,Toda la población,Fecha de antígeno de superficie hepatitis B (Toda la población),10,F
+79,Toda la población,Resultado de antígeno de superficie hepatitis B (Toda la población),2,N
+80,Toda la población,Fecha de toma de prueba tamizaje para sífilis,10,F
+81,Toda la población,Resultado de prueba tamizaje para sífilis,2,N
+82,Toda la población,Fecha de toma de prueba para VIH,10,F
+83,Toda la población,Resultado de prueba para VIH,2,N
+84,Recién nacido,Fecha de TSH neonatal,10,F
+85,Recién nacido,Resultado de TSH neonatal,2,N
+86,Ca cervix,Tamizaje del cáncer de cuello uterino,2,N
+87,Ca cervix,Fecha de tamizaje cáncer de cuello uterino,10,F
+88,Ca cervix,Resultado tamizaje cáncer de cuello uterino,3,N
+89,Ca cervix,Calidad en la muestra de citología cervicouterina,3,N
+90,Ca cervix,Código de habilitación IPS donde se realiza tamizaje cáncer de cuello uterino,12,N
+91,Ca cervix,Fecha de colposcopia,10,F
+92,Riesgo cardiovascular y metabólico,Resultado de LDL,12,N
+93,Ca cervix,Fecha de biopsia cervicouterina,10,F
+94,Ca cervix,Resultado de biopsia cervicouterina,3,N
+95,Riesgo cardiovascular y metabólico,Resultado de HDL,12,N
+96,Ca mama,Fecha de toma de mamografía,10,F
+97,Ca mama,Resultado de mamografía,3,N
+98,Riesgo cardiovascular y metabólico,Resultado de triglicéridos,12,N
+99,Ca mama,Fecha de toma biopsia de mama,10,F
+100,Ca mama,Fecha de resultado biopsia de mama,10,F
+101,Ca mama,Resultado de biopsia de mama,3,N
+102,COP,COP por persona,12,N
+103,Riesgo cardiovascular y metabólico,Fecha de toma hemoglobina,10,F
+104,Riesgo cardiovascular y metabólico,Resultado de hemoglobina,4,D
+105,Riesgo cardiovascular y metabólico,Fecha de toma glicemia basal,10,F
+106,Riesgo cardiovascular y metabólico,Fecha de toma creatinina,10,F
+107,Riesgo cardiovascular y metabólico,Resultado de creatinina,4,D
+108,No aplica para el reporte,Fecha Hemoglobina Glicosilada,10,F
+109,Ca de próstata,Resultado de PSA,4,D
+110,Toda la población,Fecha de toma de tamizaje hepatitis C,10,F
+111,Riesgo cardiovascular y metabólico,Fecha de toma HDL,10,F
+112,Tuberculosis,Fecha de toma de baciloscopia diagnóstico,10,F
+113,Tuberculosis,Resultado de baciloscopia diagnóstico,2,N
+114,Riesgo cardiovascular y metabólico,Clasificación del riesgo cardiovascular,2,N
+115,No aplica para el reporte,Tratamiento para Sífilis gestacional,2,N
+116,No aplica para el reporte,Tratamiento para Sífilis Congénita,2,N
+117,Riesgo cardiovascular y metabólico,Clasificación del riesgo metabólico,2,N
+118,Riesgo cardiovascular y metabólico,Fecha de toma triglicéridos,10,F
