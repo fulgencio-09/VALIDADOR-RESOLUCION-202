@@ -1,4 +1,4 @@
-"""Prueba estructural y reglas RPED ejecutables sobre un TXT real."""
+"""Prueba estructural y reglas RPED Error020-Error096, Error120-159 y Error171-182 sobre un TXT real."""
 from __future__ import annotations
 import re
 import sys
@@ -8,13 +8,7 @@ from pathlib import Path
 EXPECTED_RECORDS = 431
 EXPECTED_FIELDS = 119
 CUTOFF_DATE = date(2026, 9, 30)
-DATE_CUTOFF_RULES = {
-    9: "Error120", 29: "Error121", 31: "Error122", 49: "Error123", 50: "Error124", 51: "Error125",
-    52: "Error126", 53: "Error127", 55: "Error128", 56: "Error129", 58: "Error130", 62: "Error131",
-    72: "Error139", 80: "Error144", 82: "Error145", 84: "Error146", 87: "Error147", 91: "Error148",
-    93: "Error149", 96: "Error150", 99: "Error151", 100: "Error152", 106: "Error155", 110: "Error157",
-    111: "Error158", 112: "Error159",
-}
+WILDCARD_DATES = {"1800-01-01", "1805-01-01", "1810-01-01", "1825-01-01", "1830-01-01", "1835-01-01", "1845-01-01"}
 
 
 def age_months(value: str) -> int:
@@ -33,6 +27,16 @@ def _error676(record: list[str]) -> bool:
     minimum, maximum = ranges[identifier_type]
     length = len(identifier)
     return (minimum is not None and length < minimum) or (maximum is not None and length > maximum)
+
+
+def _before_birth(record: list[str], variable: int) -> bool:
+    value, birth = record[variable], record[9]
+    if value in WILDCARD_DATES or birth in WILDCARD_DATES or not value or not birth:
+        return False
+    try:
+        return date.fromisoformat(value) <= date.fromisoformat(birth)
+    except ValueError:
+        return False
 
 
 def check(path: Path) -> dict[str, int]:
@@ -79,15 +83,44 @@ def check(path: Path) -> dict[str, int]:
         "Error094": sum(r[99] > "1900-01-01" and r[10] != "F" for r in records),
         "Error095": sum(r[100] > "1900-01-01" and r[10] != "F" for r in records),
         "Error096": sum(r[101] in {"1", "2", "3", "4", "5", "21"} and r[10] != "F" for r in records),
-    }
-
-    for variable, code in DATE_CUTOFF_RULES.items():
-        violations[code] = sum(
-            value not in {"", "1845-01-01"} and value > CUTOFF_DATE.isoformat()
-            for value in (record[variable] for record in records)
-        )
-
-    violations.update({
+        "Error120": sum(r[9] > "2026-09-30" for r in records if r[9] not in WILDCARD_DATES),
+        "Error121": sum(r[29] > "2026-09-30" for r in records if r[29] not in WILDCARD_DATES),
+        "Error122": sum(r[31] > "2026-09-30" for r in records if r[31] not in WILDCARD_DATES),
+        "Error123": sum(r[49] > "2026-09-30" for r in records if r[49] not in WILDCARD_DATES),
+        "Error124": sum(r[50] > "2026-09-30" for r in records if r[50] not in WILDCARD_DATES),
+        "Error125": sum(r[51] > "2026-09-30" for r in records if r[51] not in WILDCARD_DATES),
+        "Error126": sum(r[52] > "2026-09-30" for r in records if r[52] not in WILDCARD_DATES),
+        "Error127": sum(r[53] > "2026-09-30" for r in records if r[53] not in WILDCARD_DATES),
+        "Error128": sum(r[55] > "2026-09-30" for r in records if r[55] not in WILDCARD_DATES),
+        "Error129": sum(r[56] > "2026-09-30" for r in records if r[56] not in WILDCARD_DATES),
+        "Error130": sum(r[58] > "2026-09-30" for r in records if r[58] not in WILDCARD_DATES),
+        "Error131": sum(r[62] > "2026-09-30" for r in records if r[62] not in WILDCARD_DATES),
+        "Error139": sum(r[72] > "2026-09-30" for r in records if r[72] not in WILDCARD_DATES),
+        "Error144": sum(r[80] > "2026-09-30" for r in records if r[80] not in WILDCARD_DATES),
+        "Error145": sum(r[82] > "2026-09-30" for r in records if r[82] not in WILDCARD_DATES),
+        "Error146": sum(r[84] > "2026-09-30" for r in records if r[84] not in WILDCARD_DATES),
+        "Error147": sum(r[87] > "2026-09-30" for r in records if r[87] not in WILDCARD_DATES),
+        "Error148": sum(r[91] > "2026-09-30" for r in records if r[91] not in WILDCARD_DATES),
+        "Error149": sum(r[93] > "2026-09-30" for r in records if r[93] not in WILDCARD_DATES),
+        "Error150": sum(r[96] > "2026-09-30" for r in records if r[96] not in WILDCARD_DATES),
+        "Error151": sum(r[99] > "2026-09-30" for r in records if r[99] not in WILDCARD_DATES),
+        "Error152": sum(r[100] > "2026-09-30" for r in records if r[100] not in WILDCARD_DATES),
+        "Error155": sum(r[106] > "2026-09-30" for r in records if r[106] not in WILDCARD_DATES),
+        "Error157": sum(r[110] > "2026-09-30" for r in records if r[110] not in WILDCARD_DATES),
+        "Error158": sum(r[111] > "2026-09-30" for r in records if r[111] not in WILDCARD_DATES),
+        "Error159": sum(r[112] > "2026-09-30" for r in records if r[112] not in WILDCARD_DATES),
+        "Error171": sum(_before_birth(r,29) for r in records),
+        "Error172": sum(_before_birth(r,31) for r in records),
+        "Error173": sum(_before_birth(r,49) for r in records),
+        "Error174": sum(_before_birth(r,50) for r in records),
+        "Error175": sum(_before_birth(r,51) for r in records),
+        "Error176": sum(_before_birth(r,52) for r in records),
+        "Error177": sum(_before_birth(r,53) for r in records),
+        "Error178": sum(_before_birth(r,55) for r in records),
+        "Error179": sum(_before_birth(r,56) for r in records),
+        "Error180": sum(_before_birth(r,58) for r in records),
+        "Error181": sum(_before_birth(r,62) for r in records),
+        "Error182": sum(_before_birth(r,63) for r in records),
         "Error653": sum(r[113] not in {"1", "2", "3", "4", "21"} for r in records if r[113] != ""),
         "Error655": sum(r[114] not in {"0", "4", "5", "6", "21"} for r in records if r[114] != ""),
         "Error656": sum(r[115] != "0" for r in records),
@@ -96,8 +129,7 @@ def check(path: Path) -> dict[str, int]:
         "Error676": sum(_error676(r) for r in records),
         "Error677": sum(r[9] < "1900-01-01" for r in records if r[9] != ""),
         "Error678": sum(r[102] not in {"0", "21"} and re.fullmatch(r"\d{12}", r[102]) is None for r in records if r[102] != ""),
-    })
-
+    }
     assert all(value == 0 for value in violations.values()), violations
     return {"records": len(records), **violations}
 
