@@ -95,10 +95,17 @@ final class RuleEngine
         $birthVariable = (int) ($rule['birth_variable'] ?? 9);
         $birthValue = $record[$birthVariable] ?? null;
         if ($birthValue === null || $birthValue === '' || in_array((string) $birthValue, $wildcards, true)) return false;
+
+        if (isset($rule['min_valid_date']) && $rule['min_valid_date'] !== null && (string) $value <= (string) $rule['min_valid_date']) {
+            return false;
+        }
+
         $actual = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $value);
         $birth = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $birthValue);
         if ($actual === false || $birth === false) return false;
-        return $actual <= $birth;
+
+        $inclusive = (bool) ($rule['inclusive'] ?? true);
+        return $inclusive ? $actual <= $birth : $actual < $birth;
     }
 
     private function matchesCondition(array $record, array $condition, array $context): bool
