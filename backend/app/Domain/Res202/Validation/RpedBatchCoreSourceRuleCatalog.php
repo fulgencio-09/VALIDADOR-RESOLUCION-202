@@ -71,8 +71,6 @@ final class RpedBatchCoreSourceRuleCatalog
             self::inValues('Error527',27,['0','3','4','5','6','7','8','9','21'],'Error en valores permitidos - Agudeza visual lejana ojo izquierdo'),
             self::inValues('Error531',28,['0','3','4','5','6','7','8','9','21'],'Error en valores permitidos - Agudeza visual lejana ojo derecho'),
             self::inValues('Error533',35,['0','4','5','21'],'Error en valores permitidos - Clasificación del riesgo gestacional'),
-            self::inValues('Error538',36,['0','2','3','4','5','6','21'],'Error en valores permitidos - Resultado colonoscopia de tamizaje'),
-            self::inValues('Error540',37,['0','4','5','21'],'Error en valores permitidos - Resultado de tamizaje auditivo neonatal'),
             self::inValues('Error544',38,['0','4','5','21'],'Error en valores permitidos - Resultado de tamizaje visual neonatal'),
             self::inValues('Error549',40,['0','4','5','21'],'Error en valores permitidos - Resultado de tamizaje VALE'),
             self::inValues('Error552',41,['0'],'Error en valores permitidos - Neumococo'),
