@@ -9,13 +9,12 @@ use PHPUnit\Framework\TestCase;
 final class RpedBatch294RuleCatalogTest extends TestCase
 {
     private RuleEngine $engine;
-
     protected function setUp(): void { $this->engine = new RuleEngine(); }
 
     public function test_batch_contains_all_implemented_codes(): void
     {
         $codes=array_column(RpedBatch294RuleCatalog::executable(),'code');
-        self::assertCount(48,$codes);
+        self::assertCount(50,$codes);
         foreach(['Error294','Error296','Error299','Error300','Error301','Error304','Error305','Error306','Warning307','Error308','Error309','Error318','Error328','Error329','Error341','Error344','Error346','Error350','Error352','Error354','Error355','Error359','Error361','Error362','Error364','Error367','Error368','Error369','Error371','Error375','Error379','Error380','Error381','Error382','Error383','Error384','Error385','Error386','Error387','Error388','Error389','Error390','Error391','Error392','Error393','Error394','Error395','Error396','Error398','Error399'] as $code){self::assertContains($code,$codes);}
     }
 
@@ -66,7 +65,6 @@ final class RpedBatch294RuleCatalogTest extends TestCase
     }
 
     private function codes(array $record,array $context=[]):array{return array_column($this->engine->validate($record,RpedBatch294RuleCatalog::executable(),$context),'code');}
-
     private function record(array $overrides=[]):array
     {
         $r=array_fill(0,119,'');
