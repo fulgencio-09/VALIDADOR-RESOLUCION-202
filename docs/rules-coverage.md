@@ -7,8 +7,8 @@ Fuente única: `Lineamientos-anexo-tecnico-res-202-2021-v8.xlsx`, hoja `Lineamie
 | Métrica | Cantidad |
 |---|---:|
 | Reglas/códigos oficiales en catálogo | 395 |
-| Reglas ejecutables en catálogos de validación | 290 |
-| Reglas aún pendientes de implementación/verificación | 105 |
+| Reglas ejecutables en catálogos de validación | 288 |
+| Reglas aún pendientes de implementación/verificación | 107 |
 | Errores oficiales | 377 |
 | Warnings oficiales | 18 |
 | Reglas ejecutables del rango Error020-Error096 | 33 |
@@ -18,7 +18,7 @@ Fuente única: `Lineamientos-anexo-tecnico-res-202-2021-v8.xlsx`, hoja `Lineamie
 | Reglas ejecutables del bloque Error294-Error399 | 50 |
 | Reglas ejecutables del bloque Error535-Error540 | 6 |
 | Reglas ejecutables del bloque Error638-Error652 | 14 |
-| Reglas ejecutables del lote de fechas/contenido/comodines/valores | 108 |
+| Reglas ejecutables del lote de fechas/contenido/comodines/valores | 106 |
 
 ## Fuente de verdad y control contra reglas ajenas
 
@@ -54,7 +54,7 @@ No aparecen `Error187`, `Error204` ni `Error206` como códigos de error en las f
 
 ## Lote de reglas fuente: fechas, comodines y valores
 
-Se agregó `RpedBatchCoreSourceRuleCatalog.php` con 108 reglas adicionales traducidas directamente de la hoja RPED v8, incluyendo:
+Se agregó `RpedBatchCoreSourceRuleCatalog.php` con 106 reglas adicionales traducidas directamente de la hoja RPED v8, incluyendo:
 
 - contenido válido de fechas para las variables definidas como fecha;
 - fechas posteriores a la fecha de corte en `Error132`–`Error143` que estaban pendientes;
@@ -78,9 +78,7 @@ Implementadas:
 
 ## Bloque Error294-Error399
 
-Se incorporó un lote de 50 reglas ejecutables directamente traducibles a operaciones del motor:
-
-`Error294`, `Error296`, `Error299`, `Error300`, `Error301`, `Error304`, `Error305`, `Error306`, `Warning307`, `Error308`, `Error309`, `Error318`, `Error328`, `Error329`, `Error341`, `Error344`, `Error346`, `Error350`, `Error352`, `Error354`, `Error355`, `Error359`, `Error361`, `Error362`, `Error364`, `Error367`, `Error368`, `Error369`, `Error371`, `Error375`, `Error379`, `Error380`, `Error381`, `Error382`, `Error383`, `Error384`, `Error385`, `Error386`, `Error387`, `Error388`, `Error389`, `Error390`, `Error391`, `Error392`, `Error393`, `Error394`, `Error395`, `Error396`, `Error398`, `Error399`.
+Se incorporó un lote de 50 reglas ejecutables directamente traducibles a operaciones del motor.
 
 ## Error535-Error540
 
@@ -104,7 +102,7 @@ Los resultados previamente documentados sobre el TXT real se conservan como prue
 
 ## Pendientes
 
-Las 105 reglas restantes se mantienen identificadas por su código oficial y no se sustituyen por reglas aproximadas. La siguiente fase debe traducirlas una por una desde la columna `VALIDACIONES` de la misma hoja, con pruebas de caso positivo y negativo.
+Las 107 reglas restantes se mantienen identificadas por su código oficial y no se sustituyen por reglas aproximadas. La siguiente fase debe traducirlas una por una desde la columna `VALIDACIONES` de la misma hoja, con pruebas de caso positivo y negativo.
 
 ## Criterio de cobertura
 
