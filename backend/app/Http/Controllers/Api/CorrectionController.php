@@ -25,6 +25,11 @@ final class CorrectionController
         return response()->json(['data'=>RpedCorrectionCatalog::available()]);
     }
 
+    public function history(ValidationRun $validationRun): JsonResponse
+    {
+        return response()->json(['data'=>DB::table('correction_history')->where('validation_run_id',$validationRun->id)->orderBy('id')->get()]);
+    }
+
     public function apply(Request $request, ValidationRun $validationRun): JsonResponse
     {
         $validated = $request->validate([
@@ -35,9 +40,7 @@ final class CorrectionController
             'corrections.*.action'=>['required','string','max:80'],
         ]);
         try {
-            if (!$validationRun->source_path || !Storage::disk('local')->exists($validationRun->source_path)) {
-                return response()->json(['message'=>'El archivo fuente de esta validación no está disponible para corrección.'],409);
-            }
+            if (!$validationRun->source_path || !Storage::disk('local')->exists($validationRun->source_path)) return response()->json(['message'=>'El archivo fuente de esta validación no está disponible para corrección.'],409);
             $source = Storage::disk('local')->get($validationRun->source_path);
             $result = $this->service->apply($source,$validated['corrections']);
             $variables = RpedCatalogLoader::variables(base_path('../database/catalog/variables_rped.csv'));
@@ -47,21 +50,14 @@ final class CorrectionController
             $path = 'validation-corrected/'.now()->format('Y/m/d').'/'.uniqid('res202_',true).'_'.$safeName;
             Storage::disk('local')->put($path,$result['content']);
             DB::transaction(function () use ($validationRun,$result): void {
-                foreach ($result['changes'] as $change) {
-                    DB::table('correction_history')->insert([
-                        'validation_run_id'=>$validationRun->id,'code'=>$change['code'],'line'=>$change['line'],
-                        'variable'=>$change['variable'],'action'=>$change['action'],'old_value'=>$change['old_value'],
-                        'new_value'=>$change['new_value'],'created_at'=>now(),
-                    ]);
-                }
+                foreach ($result['changes'] as $change) DB::table('correction_history')->insert([
+                    'validation_run_id'=>$validationRun->id,'code'=>$change['code'],'line'=>$change['line'],'variable'=>$change['variable'],
+                    'action'=>$change['action'],'old_value'=>$change['old_value'],'new_value'=>$change['new_value'],'created_at'=>now(),
+                ]);
             });
             return response()->json([
-                'message'=>'Corrección generada y revalidada correctamente.','filename'=>$filename,
-                'changes'=>$result['changes'],'verification'=>[
-                    'valid'=>$verification['valid'],'records'=>$verification['records'],
-                    'error_count'=>$verification['errors'],'warning_count'=>$verification['warnings'],
-                    'result_count'=>count($verification['results']),
-                ],
+                'message'=>'Corrección generada y revalidada correctamente.','filename'=>$filename,'changes'=>$result['changes'],
+                'verification'=>['valid'=>$verification['valid'],'records'=>$verification['records'],'error_count'=>$verification['errors'],'warning_count'=>$verification['warnings'],'result_count'=>count($verification['results'])],
                 'download_url'=>url('/api/validations/'.$validationRun->id.'/corrected-download?path='.urlencode($path)),
             ]);
         } catch (Throwable $exception) {
