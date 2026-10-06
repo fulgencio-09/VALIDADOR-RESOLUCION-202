@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Domain\Res202\Validation\RpedCatalogLoader;
 use App\Domain\Res202\Validation\RpedRuleCatalog;
 use App\Domain\Res202\Validation\RpedValidator;
+use App\Models\ValidationRun;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Throwable;
@@ -14,6 +15,39 @@ use Throwable;
 final class ValidationController
 {
     public function __construct(private readonly RpedValidator $validator) {}
+
+    public function index(): JsonResponse
+    {
+        $runs = ValidationRun::query()
+            ->latest('validated_at')
+            ->limit(50)
+            ->get([
+                'id', 'filename', 'file_hash', 'size_bytes', 'annex', 'status',
+                'records', 'rules_loaded', 'error_count', 'warning_count',
+                'result_count', 'validated_at', 'created_at',
+            ]);
+
+        return response()->json(['data' => $runs]);
+    }
+
+    public function show(ValidationRun $validationRun): JsonResponse
+    {
+        return response()->json([
+            'id' => $validationRun->id,
+            'filename' => $validationRun->filename,
+            'file_hash' => $validationRun->file_hash,
+            'size_bytes' => $validationRun->size_bytes,
+            'annex' => $validationRun->annex,
+            'status' => $validationRun->status,
+            'records' => $validationRun->records,
+            'rules_loaded' => $validationRun->rules_loaded,
+            'error_count' => $validationRun->error_count,
+            'warning_count' => $validationRun->warning_count,
+            'result_count' => $validationRun->result_count,
+            'results' => $validationRun->results ?? [],
+            'validated_at' => $validationRun->validated_at,
+        ]);
+    }
 
     public function store(Request $request): JsonResponse
     {
@@ -40,11 +74,7 @@ final class ValidationController
                 throw new \RuntimeException('El catálogo RPED no contiene las 119 variables esperadas.');
             }
 
-            $result = $this->validator->validate(
-                $content,
-                $variables,
-                RpedRuleCatalog::executable(),
-            );
+            $result = $this->validator->validate($content, $variables, RpedRuleCatalog::executable());
 
             $errorCount = count(array_filter(
                 $result['results'],
@@ -54,13 +84,33 @@ final class ValidationController
                 $result['results'],
                 static fn (array $item): bool => strtoupper((string) ($item['severity'] ?? '')) === 'WARNING',
             ));
+            $rulesLoaded = count(RpedRuleCatalog::executable());
+            $filename = $uploaded->getClientOriginalName();
+            $hash = hash('sha256', $content);
+
+            $run = ValidationRun::create([
+                'filename' => $filename,
+                'file_hash' => $hash,
+                'size_bytes' => strlen($content),
+                'annex' => 'RPED',
+                'status' => 'COMPLETED',
+                'records' => $result['records'],
+                'rules_loaded' => $rulesLoaded,
+                'error_count' => $errorCount,
+                'warning_count' => $warningCount,
+                'result_count' => count($result['results']),
+                'results' => $result['results'],
+                'validated_at' => now(),
+            ]);
 
             return response()->json([
+                'id' => $run->id,
                 'valid' => $errorCount === 0,
-                'filename' => $uploaded->getClientOriginalName(),
-                'size_bytes' => $uploaded->getSize(),
+                'filename' => $filename,
+                'size_bytes' => strlen($content),
+                'file_hash' => $hash,
                 'records' => $result['records'],
-                'rules_loaded' => count(RpedRuleCatalog::executable()),
+                'rules_loaded' => $rulesLoaded,
                 'error_count' => $errorCount,
                 'warning_count' => $warningCount,
                 'result_count' => count($result['results']),
