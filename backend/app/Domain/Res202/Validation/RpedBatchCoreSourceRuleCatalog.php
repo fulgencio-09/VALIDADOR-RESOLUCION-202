@@ -7,7 +7,7 @@ namespace App\Domain\Res202\Validation;
 /**
  * Reglas RPED v8 traducidas directamente de Lineamientos RPED.
  * Este lote contiene únicamente validaciones cuya condición está explícita
- * en la fuente y puede representarse sin catálogos externos.
+ * en la fuente y que no están ya implementadas en los catálogos existentes.
  */
 final class RpedBatchCoreSourceRuleCatalog
 {
@@ -15,7 +15,6 @@ final class RpedBatchCoreSourceRuleCatalog
     public static function executable(): array
     {
         return [
-            // Contenido de fecha.
             ...array_map(static fn(array $r): array => self::dateValue($r[0], $r[1]), [
                 ['Error421',9],['Error422',29],['Error423',31],['Error424',33],['Error425',49],
                 ['Error426',50],['Error427',51],['Error447',52],['Error448',53],['Error428',55],
@@ -28,32 +27,11 @@ final class RpedBatchCoreSourceRuleCatalog
                 ['Error446',118],
             ]),
 
-            // Fechas posteriores a la fecha de corte.
             ...array_map(static fn(array $r): array => self::afterCutoff($r[0], $r[1]), [
                 ['Error132',63],['Error133',64],['Error134',65],['Error135',66],['Error136',67],
                 ['Error138',69],['Error140',73],['Error141',75],['Error142',76],['Error143',78],
             ]),
 
-            // Comodines: los conjuntos se toman de la definición de cada variable en el anexo.
-            self::wildcards('Error381',29,['1800-01-01']),
-            self::wildcards('Error382',31,['1800-01-01']),
-            self::wildcards('Error380',33,['1800-01-01','1845-01-01']),
-            self::wildcards('Error383',49,['1800-01-01','1845-01-01']),
-            self::wildcards('Error384',50,['1800-01-01','1845-01-01']),
-            self::wildcards('Error385',51,self::allWildcards()),
-            self::wildcards('Error386',52,self::allWildcards()),
-            self::wildcards('Error387',53,self::allWildcards()),
-            self::wildcards('Error388',55,self::allWildcards()),
-            self::wildcards('Error389',56,self::allWildcards()),
-            self::wildcards('Error390',58,['1800-01-01','1845-01-01']),
-            self::wildcards('Error391',62,self::allWildcards()),
-            self::wildcards('Error392',63,self::allWildcards()),
-            self::wildcards('Error393',64,self::allWildcards()),
-            self::wildcards('Error394',65,self::allWildcards()),
-            self::wildcards('Error395',66,self::allWildcards()),
-            self::wildcards('Error396',67,self::allWildcards()),
-            self::wildcards('Error398',69,self::allWildcards()),
-            self::wildcards('Error399',72,self::allWildcards()),
             self::wildcards('Error400',73,self::allWildcards()),
             self::wildcards('Error401',75,self::allWildcards()),
             self::wildcards('Error672',76,self::allWildcards()),
@@ -75,13 +53,11 @@ final class RpedBatchCoreSourceRuleCatalog
             self::wildcards('Error419',112,self::allWildcards()),
             self::wildcards('Error668',118,self::allWildcards()),
 
-            // Warnings explícitos sobre comodín/valores físicos.
             self::equalsValue('Warning674',29,'1800-01-01','Verifique el comodín 1800-01-01, registre una fecha válida.','WARNING'),
             self::equalsValue('Warning675',31,'1800-01-01','Verifique el comodín 1800-01-01, registre una fecha válida.','WARNING'),
             self::warningRange('Warning040',30,'999',0.2,250,'El peso de la persona debe ser mayor a 0.2 kg y menor o igual a 250 kg.'),
             self::warningRange('Warning042',32,'999',20,225,'La talla de la persona debe ser mayor a 20 cm y menor o igual a 225 cm.'),
 
-            // Valores permitidos explícitos.
             self::inValues('Error500',15,['0'],'Error en valores permitidos - Sífilis Gestacional o congénita'),
             self::inValues('Error504',16,['0','4','5','21'],'Error en valores permitidos - Resultado del test minimental state'),
             self::inValues('Error505',17,['0'],'Error en valores permitidos - Hipotiroidismo Congénito'),
