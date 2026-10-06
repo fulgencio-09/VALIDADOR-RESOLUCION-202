@@ -62,7 +62,7 @@ def check(path: Path) -> dict[str, int]:
         "Error070": sum(r[87] != "1845-01-01" and age_months(r[9]) < 120 for r in records),
         "Error071": sum(r[87] != "1845-01-01" and r[10] != "F" for r in records),
         "Error072": sum(r[88] != "0" and age_months(r[9]) < 120 for r in records),
-        "Error073": sum(r[88] != "0" and r[10] != "F'" for r in records),
+        "Error073": sum(r[88] != "0" and r[10] != "F" for r in records),
         "Error074": sum(r[89] in {"1", "2", "3", "4", "999"} and age_months(r[9]) < 120 for r in records),
         "Error075": sum(r[89] != "0" and r[10] != "F" for r in records),
         "Error076": sum(r[90] != "0" and age_months(r[9]) <= 120 for r in records),
