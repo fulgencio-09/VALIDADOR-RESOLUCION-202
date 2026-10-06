@@ -12,6 +12,8 @@ return new class extends Migration
     {
         Schema::table('validation_runs', function (Blueprint $table): void {
             $table->string('source_path', 500)->nullable()->after('file_hash');
+            $table->string('corrected_path', 500)->nullable()->after('source_path');
+            $table->string('corrected_hash', 64)->nullable()->after('corrected_path');
             $table->unsignedTinyInteger('progress')->default(0)->after('status');
             $table->unsignedInteger('processed_records')->default(0)->after('records');
             $table->unsignedInteger('total_records')->default(0)->after('processed_records');
@@ -26,8 +28,9 @@ return new class extends Migration
     {
         Schema::table('validation_runs', function (Blueprint $table): void {
             $table->dropColumn([
-                'source_path','progress','processed_records','total_records',
-                'started_at','completed_at','error_message','job_id',
+                'source_path','corrected_path','corrected_hash','progress',
+                'processed_records','total_records','started_at','completed_at',
+                'error_message','job_id',
             ]);
         });
     }
