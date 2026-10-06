@@ -4,7 +4,6 @@
   background: #f4f7fb;
   font-synthesis: none;
 }
-
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; }
 button, input, select { font: inherit; }
@@ -31,13 +30,16 @@ h2 { margin: 0; font-size: 20px; }
 .status.danger { background: #fff3f2; color: #9f2520; }
 .alert { margin-top: 10px; padding: 12px 14px; border-radius: 10px; }
 .danger-box { background: #fff3f2; color: #9f2520; }
+.success-box { background: #eefbf3; color: #146c3a; }
 .actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-.primary, .secondary { border: 0; border-radius: 10px; padding: 12px 18px; font-weight: 700; cursor: pointer; }
+.primary, .secondary, .correct-btn { border: 0; border-radius: 10px; padding: 12px 18px; font-weight: 700; cursor: pointer; }
 .primary { background: #172033; color: white; }
 .secondary { background: #e9eef5; color: #26344b; }
 .secondary.small { padding: 9px 12px; font-size: 13px; }
+.correct-btn { padding: 7px 10px; background: #e9eef5; color: #26344b; font-size: 12px; }
+.correct-btn:hover:not(:disabled) { transform: translateY(-1px); background: #dfe6ef; }
 .primary:hover:not(:disabled), .secondary:hover:not(:disabled), .history-item:hover { transform: translateY(-1px); }
-.primary:disabled, .secondary:disabled { opacity: .45; cursor: not-allowed; }
+.primary:disabled, .secondary:disabled, .correct-btn:disabled { opacity: .45; cursor: not-allowed; }
 .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
 .metric { display: flex; flex-direction: column; gap: 7px; }
 .metric span { color: #697386; font-size: 13px; }
@@ -59,7 +61,7 @@ h2 { margin: 0; font-size: 20px; }
 .filters select, .filters input { border: 1px solid #d7dee9; border-radius: 10px; padding: 10px 12px; background: white; color: #172033; outline: none; }
 .filters input { min-width: 220px; flex: 1; }
 .table-wrap { overflow: auto; border: 1px solid #e5e9f0; border-radius: 12px; }
-table { width: 100%; border-collapse: collapse; min-width: 900px; font-size: 13px; }
+table { width: 100%; border-collapse: collapse; min-width: 980px; font-size: 13px; }
 th { text-align: left; color: #5d687b; background: #f7f9fc; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
 th, td { padding: 12px 13px; border-bottom: 1px solid #edf0f4; vertical-align: top; }
 tbody tr:last-child td { border-bottom: 0; }
