@@ -14,13 +14,31 @@ Construir un validador web basado en la estructura oficial del anexo técnico, c
 - Mantener historial de validaciones y correcciones.
 - Generar archivos corregidos y reportes de resultados.
 
-## Arquitectura inicial
+## Arquitectura
 
 - **Frontend:** Vue 3 + Vite.
 - **Backend:** Laravel 12 / API REST.
 - **Persistencia:** MySQL.
 - **Procesamiento:** colas con Redis para archivos grandes.
 - **Reglas:** motor de validación parametrizado y versionado.
+
+Flujo actual:
+
+```text
+Vue 3
+  ↓
+POST /api/validations
+  ↓
+Laravel 12
+  ↓
+Validación estructural + motor RPED
+  ↓
+Persistencia en validation_runs
+  ↓
+Resultados JSON
+  ↓
+Dashboard + historial + reporte CSV
+```
 
 ## Fuente normativa
 
@@ -35,6 +53,54 @@ El catálogo reproducible se genera con `tools/import_res202_catalog.py` a parti
 - Reglas versionadas con `source_version=v8`.
 - Corrección automática desactivada por defecto; se habilitará regla por regla después de verificar que sea segura.
 
+## API disponible
+
+| Método | Endpoint | Función |
+|---|---|---|
+| GET | `/api/health` | Estado de la API |
+| POST | `/api/validations` | Cargar y validar TXT RPED |
+| GET | `/api/validations` | Historial de las últimas 50 validaciones |
+| GET | `/api/validations/{id}` | Detalle de una validación |
+
+La carga acepta TXT de hasta 50 MB. El resultado incluye registros, reglas ejecutadas, errores, advertencias, línea, variable, código y valor observado.
+
+## Persistencia
+
+La tabla `validation_runs` conserva el historial de validaciones, incluyendo:
+
+- nombre y SHA-256 del archivo;
+- tamaño;
+- anexo;
+- estado;
+- cantidad de registros;
+- reglas ejecutadas;
+- errores y advertencias;
+- resultados completos de la validación;
+- fecha de procesamiento.
+
+Para crearla en el entorno Laravel:
+
+```bash
+cd backend
+composer install
+php artisan migrate
+php artisan serve
+```
+
+## Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Configurar opcionalmente:
+
+```env
+VITE_API_URL=http://localhost:8000/api
+```
+
 ## Motor de validación
 
 Se incorporaron:
@@ -42,9 +108,10 @@ Se incorporaron:
 - `StructuralValidator.php`: valida la estructura física del TXT.
 - `RuleEngine.php`: ejecuta reglas parametrizadas sin hard-codear cada regla.
 - `RpedValidator.php`: compone validación estructural y reglas de negocio por registro.
-- `database/catalog/validation_rules_rped.csv`: catálogo inicial de reglas RPED normalizado por código oficial.
+- `RpedCatalogLoader.php`: carga las 119 variables desde el catálogo reproducible.
+- `database/catalog/validation_rules_rped.csv`: catálogo oficial normalizado por código.
 
-El catálogo inicial es deliberadamente una primera cobertura funcional. La cobertura completa de reglas se seguirá importando desde el Excel oficial antes de considerar terminada la validación de contenido.
+La cobertura de reglas seguirá ampliándose desde el Excel oficial. La aplicación no debe considerarse terminada hasta completar y probar la cobertura requerida.
 
 ## Validación estructural
 
@@ -61,8 +128,6 @@ La primera capa contempla:
 9. Fechas con formato `AAAA-MM-DD`.
 10. Detección de caracteres especiales de fin de archivo/registro.
 
-Esta capa es independiente del catálogo de reglas de negocio para permitir que el motor posterior sea parametrizado.
-
 ## Principios
 
 1. Las reglas se derivan del anexo técnico oficial.
@@ -71,17 +136,8 @@ Esta capa es independiente del catálogo de reglas de negocio para permitir que 
 4. Los errores y advertencias conservan su código oficial cuando corresponda.
 5. El sistema funciona como herramienta de prevalidación y control de calidad; no sustituye la validación oficial de PISIS.
 
-## Estructura
-
-```text
-backend/       API Laravel
-afrontend/     SPA Vue 3
-database/      SQL y catálogos
-docs/          Arquitectura, reglas y decisiones técnicas
-tools/         Importadores reproducibles
-tests/         Casos de prueba
-```
-
 ## Estado
 
-**Fase 1 en desarrollo:** catálogo oficial RPED, validación estructural y primer motor parametrizado implementados. El siguiente paso es ampliar el catálogo completo y crear pruebas automatizadas contra archivos TXT reales.
+**Fase 1 funcional:** carga TXT, validación estructural, motor RPED, resultados, reporte CSV e historial persistente implementados.
+
+**Siguiente bloque:** corrección segura y trazable, descarga del TXT corregido, procesamiento de archivos grandes con Redis/colas y ampliación de cobertura de reglas pendientes.
