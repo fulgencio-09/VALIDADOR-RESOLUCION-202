@@ -35,9 +35,20 @@ El catálogo reproducible se genera con `tools/import_res202_catalog.py` a parti
 - Reglas versionadas con `source_version=v8`.
 - Corrección automática desactivada por defecto; se habilitará regla por regla después de verificar que sea segura.
 
+## Motor de validación
+
+Se incorporaron:
+
+- `StructuralValidator.php`: valida la estructura física del TXT.
+- `RuleEngine.php`: ejecuta reglas parametrizadas sin hard-codear cada regla.
+- `RpedValidator.php`: compone validación estructural y reglas de negocio por registro.
+- `database/catalog/validation_rules_rped.csv`: catálogo inicial de reglas RPED normalizado por código oficial.
+
+El catálogo inicial es deliberadamente una primera cobertura funcional. La cobertura completa de reglas se seguirá importando desde el Excel oficial antes de considerar terminada la validación de contenido.
+
 ## Validación estructural
 
-Se incorporó `backend/app/Domain/Res202/Validation/StructuralValidator.php` para la primera capa del motor:
+La primera capa contempla:
 
 1. Archivo no vacío.
 2. Registro tipo 1 obligatorio y primero.
@@ -64,7 +75,7 @@ Esta capa es independiente del catálogo de reglas de negocio para permitir que 
 
 ```text
 backend/       API Laravel
-frontend/      SPA Vue 3
+afrontend/     SPA Vue 3
 database/      SQL y catálogos
 docs/          Arquitectura, reglas y decisiones técnicas
 tools/         Importadores reproducibles
@@ -73,4 +84,4 @@ tests/         Casos de prueba
 
 ## Estado
 
-**Fase 1 en desarrollo:** catálogo oficial RPED y primera capa de validación estructural implementados. El siguiente paso es conectar el catálogo de reglas al motor Laravel y crear pruebas contra archivos TXT reales.
+**Fase 1 en desarrollo:** catálogo oficial RPED, validación estructural y primer motor parametrizado implementados. El siguiente paso es ampliar el catálogo completo y crear pruebas automatizadas contra archivos TXT reales.
