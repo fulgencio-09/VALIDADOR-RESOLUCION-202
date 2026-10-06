@@ -8,13 +8,6 @@ use DateTimeImmutable;
 
 final class RuleEngine
 {
-    /**
-     * Ejecuta reglas parametrizadas sobre un registro RPED.
-     *
-     * Las reglas se mantienen fuera del código mediante un catálogo. Esto
-     * permite ampliar la cobertura sin convertir el validador en una cadena
-     * de condiciones hard-coded.
-     */
     public function validate(array $record, array $rules, array $context = []): array
     {
         $results = [];
@@ -144,12 +137,6 @@ final class RuleEngine
         return $actual < $minimum;
     }
 
-    /**
-     * Falla cuando la longitud de la variable objetivo no corresponde al
-     * valor de otra variable. Ej.: Error676 para tipo de identificación.
-     *
-     * rule[length_map] = ["CC" => [["min" => null, "max" => 10]], ...]
-     */
     private function lengthByValue(array $record, array $rule): bool
     {
         $selector = (string) ($record[(int) ($rule['selector_variable'] ?? -1)] ?? '');
@@ -161,8 +148,7 @@ final class RuleEngine
         }
 
         $length = strlen($value);
-        $constraints = $map[$selector];
-        foreach ($constraints as $constraint) {
+        foreach ($map[$selector] as $constraint) {
             $min = $constraint['min'] ?? null;
             $max = $constraint['max'] ?? null;
             if (($min === null || $length >= (int) $min) && ($max === null || $length <= (int) $max)) {
@@ -173,10 +159,6 @@ final class RuleEngine
         return true;
     }
 
-    /**
-     * Falla si la longitud no pertenece al conjunto explícito permitido para
-     * el valor selector. Se usa para Error678: variable 102 solo 0, 21 o 12.
-     */
     private function lengthRangeByValue(array $record, array $rule): bool
     {
         $value = (string) ($record[(int) ($rule['variable'] ?? -1)] ?? '');
@@ -187,7 +169,12 @@ final class RuleEngine
 
         $length = strlen($value);
         $allowedLengths = array_map('intval', $rule['allowed_lengths'] ?? []);
-        return !in_array($length, $allowedLengths, true);
+        if (!in_array($length, $allowedLengths, true)) {
+            return true;
+        }
+
+        $pattern = $rule['allowed_pattern'] ?? null;
+        return $pattern !== null && preg_match((string) $pattern, $value) !== 1;
     }
 
     private function lengthExact(mixed $value, int $length): bool
