@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Res202\Validation;
 
+use DateTimeImmutable;
+
 final class RuleEngine
 {
     /**
@@ -34,6 +36,11 @@ final class RuleEngine
                 'not_equals_when' => $this->notEqualsWhen($record, $rule),
                 'date_not_before' => $this->dateNotBefore($value, $rule['date'] ?? null),
                 'date_not_after' => $this->dateNotAfter($value, $rule['date'] ?? null),
+                'date_before' => $this->dateBefore($value, $rule['date'] ?? null),
+                'length_by_value' => $this->lengthByValue($record, $rule),
+                'length_range_by_value' => $this->lengthRangeByValue($record, $rule),
+                'length_exact' => $this->lengthExact($value, (int) ($rule['length'] ?? 0)),
+                'regex' => $this->regexFails($value, (string) ($rule['pattern'] ?? '')),
                 default => false,
             };
 
@@ -76,7 +83,10 @@ final class RuleEngine
     private function equalsWhenAny(array $record, array $rule): bool
     {
         $whenVariable = (int) ($rule['when_variable'] ?? -1);
-        $whenValues = array_filter(explode('|', (string) ($rule['when_value'] ?? '')), static fn (string $v): bool => $v !== '');
+        $whenValues = array_filter(
+            explode('|', (string) ($rule['when_value'] ?? '')),
+            static fn (string $v): bool => $v !== ''
+        );
         $expected = (string) ($rule['expected'] ?? '');
         $actualCondition = (string) ($record[$whenVariable] ?? '');
 
@@ -116,5 +126,85 @@ final class RuleEngine
         }
 
         return (string) $value > (string) $date;
+    }
+
+    private function dateBefore(mixed $value, mixed $date): bool
+    {
+        if ($value === null || $value === '' || $date === null || $date === '') {
+            return false;
+        }
+
+        $actual = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $value);
+        $minimum = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $date);
+
+        if ($actual === false || $minimum === false) {
+            return false;
+        }
+
+        return $actual < $minimum;
+    }
+
+    /**
+     * Falla cuando la longitud de la variable objetivo no corresponde al
+     * valor de otra variable. Ej.: Error676 para tipo de identificación.
+     *
+     * rule[length_map] = ["CC" => [["min" => null, "max" => 10]], ...]
+     */
+    private function lengthByValue(array $record, array $rule): bool
+    {
+        $selector = (string) ($record[(int) ($rule['selector_variable'] ?? -1)] ?? '');
+        $value = (string) ($record[(int) ($rule['variable'] ?? -1)] ?? '');
+        $map = $rule['length_map'] ?? [];
+
+        if (!array_key_exists($selector, $map)) {
+            return false;
+        }
+
+        $length = strlen($value);
+        $constraints = $map[$selector];
+        foreach ($constraints as $constraint) {
+            $min = $constraint['min'] ?? null;
+            $max = $constraint['max'] ?? null;
+            if (($min === null || $length >= (int) $min) && ($max === null || $length <= (int) $max)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Falla si la longitud no pertenece al conjunto explícito permitido para
+     * el valor selector. Se usa para Error678: variable 102 solo 0, 21 o 12.
+     */
+    private function lengthRangeByValue(array $record, array $rule): bool
+    {
+        $value = (string) ($record[(int) ($rule['variable'] ?? -1)] ?? '');
+        $allowed = array_map('strval', $rule['allowed_values'] ?? []);
+        if (in_array($value, $allowed, true)) {
+            return false;
+        }
+
+        $length = strlen($value);
+        $allowedLengths = array_map('intval', $rule['allowed_lengths'] ?? []);
+        return !in_array($length, $allowedLengths, true);
+    }
+
+    private function lengthExact(mixed $value, int $length): bool
+    {
+        if ($value === null || $value === '') {
+            return false;
+        }
+
+        return strlen((string) $value) !== $length;
+    }
+
+    private function regexFails(mixed $value, string $pattern): bool
+    {
+        if ($value === null || $value === '' || $pattern === '') {
+            return false;
+        }
+
+        return preg_match($pattern, (string) $value) !== 1;
     }
 }
