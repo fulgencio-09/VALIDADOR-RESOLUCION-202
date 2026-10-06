@@ -15,36 +15,82 @@ final class RpedRuleEngineTest extends TestCase
         $this->engine = new RuleEngine();
     }
 
-    public function test_realistic_valid_record_passes_the_initial_executable_rules(): void
+    public function test_realistic_valid_record_passes_executable_rules(): void
     {
-        $record = $this->record([
-            3 => 'CC', 4 => '1234567890', 9 => '1990-01-01', 10 => 'F', 14 => '1',
-            29 => '1800-01-01', 30 => '999', 31 => '1800-01-01', 32 => '999',
-            102 => '123456789012', 113 => '4', 114 => '21', 115 => '0', 116 => '0', 117 => '21',
-        ]);
-
-        self::assertSame([], $this->engine->validate($record, RpedRuleCatalog::executable()));
+        $record = $this->record();
+        $codes = array_column($this->engine->validate($record, RpedRuleCatalog::executable(), $this->context(432)), 'code');
+        self::assertSame([], $codes);
     }
 
-    public function test_error030_is_detected_when_gestante_requires_female_sex(): void
+    /**
+     * Cubre las reglas nuevas del rango Error020-Error096. Las reglas 021,
+     * 022 y 079 no están en executable(): las primeras requieren REPS y 079
+     * conserva una discrepancia de fuente documentada.
+     */
+    public function test_error020_to_096_family_detects_invalid_cases(): void
     {
-        $record = $this->record([14 => '1', 10 => 'M']);
-        $codes = array_column($this->engine->validate($record, RpedRuleCatalog::executable()), 'code');
-        self::assertContains('Error030', $codes);
+        $cases = [
+            'Error037' => [22=>'4'],
+            'Error038' => [10=>'M',64=>'2026-01-01'],
+            'Error047' => [10=>'M',47=>'6'],
+            'Error049' => [10=>'M',49=>'2026-01-01'],
+            'Error050' => [10=>'M',50=>'2026-01-01'],
+            'Error051' => [10=>'M',51=>'2026-01-01'],
+            'Error063' => [70=>'1'],
+            'Error064' => [71=>'1'],
+            'Error069' => [86=>'1'],
+            'Error070' => [87=>'2026-01-01'],
+            'Error071' => [87=>'2026-01-01',10=>'M'],
+            'Error072' => [88=>'1'],
+            'Error073' => [88=>'1',10=>'M'],
+            'Error074' => [89=>'1'],
+            'Error075' => [89=>'1',10=>'M'],
+            'Error076' => [90=>'999'],
+            'Error077' => [90=>'999',10=>'M'],
+            'Error078' => [91=>'2026-01-01'],
+            'Error082' => [93=>'2026-01-01'],
+            'Error083' => [93=>'2026-01-01',10=>'M'],
+            'Error084' => [94=>'1'],
+            'Error085' => [94=>'1',10=>'M'],
+            'Error088' => [96=>'2026-01-01'],
+            'Error089' => [96=>'2026-01-01',10=>'M'],
+            'Error090' => [97=>'1'],
+            'Error091' => [97=>'1',10=>'M'],
+            'Error094' => [99=>'2026-01-01',10=>'M'],
+            'Error095' => [100=>'2026-01-01',10=>'M'],
+            'Error096' => [101=>'1',10=>'M'],
+        ];
+
+        foreach ($cases as $expectedCode => $overrides) {
+            $age = match ($expectedCode) {
+                'Error038' => 479,
+                'Error051' => 7,
+                'Error063' => 5,
+                'Error064' => 23,
+                'Error069', 'Error070', 'Error072', 'Error074', 'Error078' => 119,
+                'Error076' => 120,
+                'Error082', 'Error084' => 120,
+                'Error088', 'Error090' => 419,
+                default => 432,
+            };
+
+            $record = $this->record($overrides);
+            $codes = array_column($this->engine->validate($record, RpedRuleCatalog::executable(), $this->context($age)), 'code');
+            self::assertContains($expectedCode, $codes, $expectedCode);
+        }
     }
 
-    public function test_error041_and_043_are_detected_for_invalid_measurement_dates(): void
+    public function test_error020_is_detected_when_birth_date_is_missing(): void
     {
-        $record = $this->record([30 => '999', 29 => '2026-09-30', 32 => '999', 31 => '2026-09-30']);
-        $codes = array_column($this->engine->validate($record, RpedRuleCatalog::executable()), 'code');
-        self::assertContains('Error041', $codes);
-        self::assertContains('Error043', $codes);
+        $record = $this->record([9=>'']);
+        $codes = array_column($this->engine->validate($record, RpedRuleCatalog::executable(), $this->context(432)), 'code');
+        self::assertContains('Error020', $codes);
     }
 
-    public function test_allowed_value_rules_are_detected(): void
+    public function test_existing_allowed_value_rules_remain_active(): void
     {
-        $record = $this->record([113 => '9', 114 => '9', 115 => '1', 116 => '1', 117 => '9']);
-        $codes = array_column($this->engine->validate($record, RpedRuleCatalog::executable()), 'code');
+        $record = $this->record([113=>'9',114=>'9',115=>'1',116=>'1',117=>'9']);
+        $codes = array_column($this->engine->validate($record, RpedRuleCatalog::executable(), $this->context(432)), 'code');
         self::assertContains('Error653', $codes);
         self::assertContains('Error655', $codes);
         self::assertContains('Error656', $codes);
@@ -54,43 +100,59 @@ final class RpedRuleEngineTest extends TestCase
 
     public function test_error676_validates_identification_length_by_type(): void
     {
-        $valid = $this->record([3 => 'CC', 4 => '1234567890']);
-        $invalid = $this->record([3 => 'CC', 4 => '12345678901']);
-        $validCodes = array_column($this->engine->validate($valid, RpedRuleCatalog::executable()), 'code');
-        $invalidCodes = array_column($this->engine->validate($invalid, RpedRuleCatalog::executable()), 'code');
+        $valid = $this->record([3=>'CC',4=>'1234567890']);
+        $invalid = $this->record([3=>'CC',4=>'12345678901']);
+        $validCodes = array_column($this->engine->validate($valid, RpedRuleCatalog::executable(), $this->context(432)), 'code');
+        $invalidCodes = array_column($this->engine->validate($invalid, RpedRuleCatalog::executable(), $this->context(432)), 'code');
         self::assertNotContains('Error676', $validCodes);
         self::assertContains('Error676', $invalidCodes);
     }
 
     public function test_error677_rejects_birth_dates_before_1900(): void
     {
-        $record = $this->record([9 => '1845-01-01']);
-        $codes = array_column($this->engine->validate($record, RpedRuleCatalog::executable()), 'code');
+        $record = $this->record([9=>'1845-01-01']);
+        $codes = array_column($this->engine->validate($record, RpedRuleCatalog::executable(), $this->context(432)), 'code');
         self::assertContains('Error677', $codes);
     }
 
     public function test_error678_accepts_only_zero_21_or_twelve_digits(): void
     {
-        foreach (['0', '21', '123456789012'] as $value) {
-            $record = $this->record([102 => $value]);
-            $codes = array_column($this->engine->validate($record, RpedRuleCatalog::executable()), 'code');
+        foreach (['0','21','123456789012'] as $value) {
+            $codes = array_column($this->engine->validate($this->record([102=>$value]), RpedRuleCatalog::executable(), $this->context(432)), 'code');
             self::assertNotContains('Error678', $codes, $value);
         }
-
-        foreach (['1', '123', 'ABCDEFGHIJKL', '12345678901'] as $value) {
-            $record = $this->record([102 => $value]);
-            $codes = array_column($this->engine->validate($record, RpedRuleCatalog::executable()), 'code');
+        foreach (['1','123','ABCDEFGHIJKL','12345678901'] as $value) {
+            $codes = array_column($this->engine->validate($this->record([102=>$value]), RpedRuleCatalog::executable(), $this->context(432)), 'code');
             self::assertContains('Error678', $codes, $value);
         }
+    }
+
+    public function test_pending_rules_are_explicitly_separated(): void
+    {
+        self::assertSame(['Error021','Error022'], array_column(RpedRuleCatalog::pendingExternalCatalog(), 'code'));
+        self::assertSame(['Error079'], array_column(RpedRuleCatalog::pendingSourceAmbiguities(), 'code'));
     }
 
     /** @param array<int,string> $overrides */
     private function record(array $overrides = []): array
     {
         $record = array_fill(0, 119, '');
-        foreach ($overrides as $variable => $value) {
-            $record[$variable] = $value;
-        }
+        $defaults = [
+            3=>'CC', 4=>'1234567890', 9=>'1990-01-01', 10=>'F', 14=>'0',
+            22=>'0', 29=>'1800-01-01', 30=>'999', 31=>'1800-01-01', 32=>'999',
+            47=>'0', 49=>'1845-01-01', 50=>'1845-01-01', 51=>'1845-01-01',
+            64=>'1845-01-01', 70=>'0', 71=>'0', 86=>'0', 87=>'1845-01-01', 88=>'0',
+            89=>'0', 90=>'0', 91=>'1845-01-01', 93=>'1845-01-01', 94=>'0',
+            96=>'1845-01-01', 97=>'0', 99=>'1845-01-01', 100=>'1845-01-01', 101=>'0',
+            102=>'123456789012', 113=>'4', 114=>'0', 115=>'0', 116=>'0', 117=>'0',
+        ];
+        foreach ($defaults as $variable=>$value) $record[$variable] = $value;
+        foreach ($overrides as $variable=>$value) $record[$variable] = $value;
         return $record;
+    }
+
+    private function context(int $ageMonths): array
+    {
+        return ['cutoff_date'=>'2026-01-01','age_months'=>$ageMonths,'age_years'=>intdiv($ageMonths,12),'age_days'=>$ageMonths*30];
     }
 }
