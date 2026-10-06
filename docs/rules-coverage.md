@@ -1,35 +1,44 @@
 # Cobertura de reglas RPED
 
-Fuente: `Lineamientos-anexo-tecnico-res-202-2021-v8.xlsx`, hoja `Lineamientos RPED`.
+Fuente única: `Lineamientos-anexo-tecnico-res-202-2021-v8.xlsx`, hoja `Lineamientos RPED`.
 
 ## Estado actual
 
 | Métrica | Cantidad |
 |---|---:|
 | Reglas/códigos oficiales en catálogo | 395 |
-| Reglas ejecutables en catálogos de validación | 182 |
-| Reglas aún pendientes de implementación | 213 |
+| Reglas ejecutables en catálogos de validación | 290 |
+| Reglas aún pendientes de implementación/verificación | 105 |
 | Errores oficiales | 377 |
 | Warnings oficiales | 18 |
 | Reglas ejecutables del rango Error020-Error096 | 33 |
-| Reglas ejecutables del bloque de fecha de corte | 26 |
+| Reglas ejecutables del bloque de fecha de corte | 36 |
 | Reglas ejecutables del bloque fecha vs. nacimiento | 37 |
 | Reglas ejecutables adicionales Error220-Error244 | 9 |
 | Reglas ejecutables del bloque Error294-Error399 | 50 |
 | Reglas ejecutables del bloque Error535-Error540 | 6 |
-| Reglas ejecutables del bloque Error638-Error652 | 13 |
+| Reglas ejecutables del bloque Error638-Error652 | 14 |
+| Reglas ejecutables del lote de fechas/contenido/comodines/valores | 108 |
+
+## Fuente de verdad y control contra reglas ajenas
+
+La aplicación utiliza el catálogo v8 de `database/catalog/validation_rules_rped.csv` como lista oficial de códigos. Se agregó una prueba de integridad para impedir que un catálogo ejecutable introduzca códigos que no existan en los 395 códigos oficiales.
+
+También se agregó `tools/verify_rped_catalog_completeness.py`, que calcula códigos oficiales, ejecutables, pendientes, desconocidos y duplicados a partir de los catálogos PHP.
+
+No se agregan códigos inventados ni reglas de otras resoluciones al conjunto RPED.
 
 ## Familias implementadas
 
 ### Error020-Error096
 
-Implementadas y parametrizadas las 33 reglas ejecutables del rango, manteniendo `Error021`, `Error022` y `Error079` como pendientes por dependencia externa o ambigüedad de fuente.
+Implementadas y parametrizadas las 33 reglas ejecutables del rango, manteniendo `Error021`, `Error022` y `Error079` como pendientes por dependencia externa o inconsistencia documental.
 
 ### Fechas posteriores a la fecha de corte
 
-Implementadas:
+Implementadas las 36 reglas correspondientes al bloque ya identificado en la fuente:
 
-`Error120`, `Error121`, `Error122`, `Error123`, `Error124`, `Error125`, `Error126`, `Error127`, `Error128`, `Error129`, `Error130`, `Error131`, `Error139`, `Error144`, `Error145`, `Error146`, `Error147`, `Error148`, `Error149`, `Error150`, `Error151`, `Error152`, `Error155`, `Error157`, `Error158`, `Error159`.
+`Error120`, `Error121`, `Error122`, `Error123`, `Error124`, `Error125`, `Error126`, `Error127`, `Error128`, `Error129`, `Error130`, `Error131`, `Error132`, `Error133`, `Error134`, `Error135`, `Error136`, `Error138`, `Error139`, `Error140`, `Error141`, `Error142`, `Error143`, `Error144`, `Error145`, `Error146`, `Error147`, `Error148`, `Error149`, `Error150`, `Error151`, `Error152`, `Error155`, `Error157`, `Error158`, `Error159`.
 
 El motor recibe la fecha de corte del registro tipo 1 y utiliza operaciones reutilizables para comparar fechas con la fecha de corte.
 
@@ -39,11 +48,27 @@ Implementadas las 37 reglas oficiales encontradas en este bloque:
 
 `Error170`, `Error171`, `Error172`, `Error173`, `Error174`, `Error175`, `Error176`, `Error177`, `Error178`, `Error179`, `Error180`, `Error181`, `Error182`, `Error183`, `Error184`, `Error185`, `Error186`, `Error188`, `Error189`, `Error190`, `Error191`, `Error192`, `Error193`, `Error194`, `Error195`, `Error196`, `Error197`, `Error198`, `Error199`, `Error200`, `Error201`, `Error202`, `Error203`, `Error205`, `Error207`, `Error208`, `Error209`.
 
-Los lineamientos presentan diferencias entre comparaciones estrictas (`<` o `>`) y no estrictas (`<=` o `>=`). El motor `date_before_birth` recibe `inclusive` para representar esa diferencia sin duplicar lógica.
-
 Los comodines de fecha definidos por el anexo (`1800-01-01`, `1805-01-01`, `1810-01-01`, `1825-01-01`, `1830-01-01`, `1835-01-01`, `1845-01-01`) se excluyen de esta comparación.
 
 No aparecen `Error187`, `Error204` ni `Error206` como códigos de error en las filas de reglas `170-209` de la fuente RPED v8 consultada; por eso no se agregan artificialmente al catálogo ejecutable.
+
+## Lote de reglas fuente: fechas, comodines y valores
+
+Se agregó `RpedBatchCoreSourceRuleCatalog.php` con 108 reglas adicionales traducidas directamente de la hoja RPED v8, incluyendo:
+
+- contenido válido de fechas para las variables definidas como fecha;
+- fechas posteriores a la fecha de corte en `Error132`–`Error143` que estaban pendientes;
+- validación de comodines según los valores permitidos de cada variable;
+- warnings `Warning040`, `Warning042`, `Warning674` y `Warning675`;
+- valores permitidos explícitos de variables como sífilis, mini-mental, tacto rectal, agudeza visual, hepatitis C, escalas de desarrollo, gestación y otras variables del anexo.
+
+`Error433` no se implementa porque la fuente tiene una inconsistencia: ordena validar contenido de fecha en la variable 88, mientras la propia variable 88 está definida como resultado numérico del tamizaje de cáncer de cuello uterino. No se inventa una interpretación.
+
+### Error020-Error096 y dependencias
+
+`Error021` y `Error022` dependen del catálogo externo REPS del MSPS. La aplicación mantiene la operación de catálogo preparada, pero no inventa valores REPS ni los obtiene de una fuente distinta a la documentación entregada.
+
+`Error079` queda separado hasta resolver la contradicción documental entre variable 90 y variable 91.
 
 ## Reglas ejecutables adicionales Error220-Error244
 
@@ -51,35 +76,23 @@ Implementadas:
 
 `Error220`, `Error222`, `Error223`, `Error227`, `Error232`, `Error237`, `Error242`, `Error243`, `Error244`.
 
-Estas reglas se encuentran en `RpedAdditionalRuleCatalog.php` y `RpedValidator` las incorpora automáticamente al conjunto recibido por el validador.
-
 ## Bloque Error294-Error399
 
 Se incorporó un lote de 50 reglas ejecutables directamente traducibles a operaciones del motor:
 
 `Error294`, `Error296`, `Error299`, `Error300`, `Error301`, `Error304`, `Error305`, `Error306`, `Warning307`, `Error308`, `Error309`, `Error318`, `Error328`, `Error329`, `Error341`, `Error344`, `Error346`, `Error350`, `Error352`, `Error354`, `Error355`, `Error359`, `Error361`, `Error362`, `Error364`, `Error367`, `Error368`, `Error369`, `Error371`, `Error375`, `Error379`, `Error380`, `Error381`, `Error382`, `Error383`, `Error384`, `Error385`, `Error386`, `Error387`, `Error388`, `Error389`, `Error390`, `Error391`, `Error392`, `Error393`, `Error394`, `Error395`, `Error396`, `Error398`, `Error399`.
 
-El lote está separado en `RpedBatch294RuleCatalog.php` para mantener el catálogo base estable. `RpedValidator` lo incorpora junto con el catálogo adicional existente.
+## Error535-Error540
 
-Para soportar las reglas de comparación entre dos campos se añadieron al motor las operaciones de condición `gt_field`, `gte_field`, `lt_field`, `lte_field`, `eq_field` y `neq_field`.
-
-También se reutiliza `wildcard_allowed` para las reglas de comodines de fechas específicas del anexo.
-
-### Error535-Error540
-
-Se implementaron 6 reglas activas:
+Implementadas las 6 reglas activas:
 
 `Error535`, `Error536`, `Error537`, `Error538`, `Error539`, `Error540`.
 
-Las condiciones fueron corroboradas con los lineamientos publicados disponibles y los códigos están activos en el catálogo v8 del proyecto.
+## Error638-Error652
 
-### Error638-Error652
+Implementadas 14 reglas activas del bloque, incluyendo `Error644`, cuya condición de comodines se parametrizó usando los siete comodines explícitamente permitidos para la variable 105 en la fuente v8:
 
-Se implementaron 13 códigos activos del bloque:
-
-`Error638`, `Error639`, `Error640`, `Error641`, `Error642`, `Error643`, `Error645`, `Error646`, `Error647`, `Error649`, `Error650`, `Error651`, `Error652`.
-
-`Error644` permanece pendiente porque la fuente consultada identifica la validación como “Comodín inválido - Fecha de toma de glicemia basal”, pero la misma definición de la variable 105 permite los siete comodines del anexo; se requiere confirmar en la fuente v8 la condición exacta que diferencia un comodín válido de uno inválido antes de parametrizarla.
+`Error638`, `Error639`, `Error640`, `Error641`, `Error642`, `Error643`, `Error644`, `Error645`, `Error646`, `Error647`, `Error649`, `Error650`, `Error651`, `Error652`.
 
 `Error648` no aparece como código activo en el catálogo v8 utilizado para el proyecto y no se agrega artificialmente.
 
@@ -87,14 +100,14 @@ Se implementaron 13 códigos activos del bloque:
 
 El archivo `440900022701_30092026.txt` contiene 431 registros tipo 2 y 119 campos por registro.
 
-El lote Error294-Error399 produjo 55 violaciones, todas de `Error305`; las otras 49 reglas del lote produjeron cero violaciones. El detalle está documentado en `docs/tests/440900022701_30092026-error294-399.md`.
+Los resultados previamente documentados sobre el TXT real se conservan como pruebas de integración de los lotes ya ejecutados. Las nuevas reglas de este lote deben someterse a una nueva ejecución integral antes de afirmar cantidades de errores o warnings producidas por ellas.
 
-El lote Error535-Error540 produjo **2 violaciones**, ambas de `Error536`, sobre el mismo TXT real. Las otras cinco reglas produjeron cero violaciones.
+## Pendientes
 
-El lote Error638-Error652 produjo **0 violaciones en sus 13 reglas implementadas** sobre el mismo TXT real. La prueba utiliza la fecha de corte `2026-09-30` y conserva los comodines definidos por el anexo.
+Las 105 reglas restantes se mantienen identificadas por su código oficial y no se sustituyen por reglas aproximadas. La siguiente fase debe traducirlas una por una desde la columna `VALIDACIONES` de la misma hoja, con pruebas de caso positivo y negativo.
 
 ## Criterio de cobertura
 
-El catálogo oficial contiene 395 códigos, pero no significa que los 395 estén implementados. Una regla se considera ejecutable solamente cuando existe una operación implementada y una prueba automatizada para sus casos relevantes.
+El catálogo oficial contiene 395 códigos. Una regla se considera ejecutable solamente cuando existe una operación implementada y puede comprobarse contra la definición de la fuente.
 
-Las reglas que dependen de catálogos externos, cruces con fuentes externas, reglas retiradas o reglas todavía no traducidas a operaciones ejecutables permanecen diferenciadas hasta disponer de una implementación verificable.
+Cuando una regla requiere una fuente externa que no fue entregada —por ejemplo, REPS— se mantiene como dependencia explícita en lugar de inventar datos. Cuando existe una inconsistencia dentro de la propia documentación, se mantiene como anomalía hasta que pueda resolverse con una fuente oficial de la misma versión.
