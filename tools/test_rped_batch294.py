@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import sys
+from collections import Counter, defaultdict
 from datetime import date
 from pathlib import Path
-from collections import Counter, defaultdict
 
-TXT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "440900022701_30092026.txt"
 CUTOFF = "2026-09-30"
 WILDCARDS = {"1800-01-01", "1805-01-01", "1810-01-01", "1825-01-01", "1830-01-01", "1835-01-01", "1845-01-01"}
 
@@ -50,7 +50,7 @@ def build_rules():
         "Error354": lambda r: r[89] in {"1", "2", "3"} and (r[88] < "1" or r[88] > "18"),
         "Error355": lambda r: r[89] in {"1", "2", "3", "4"} and r[90] in {"0", "999"},
         "Error359": lambda r: r[94] in {"1", "3", "4", "5", "6"} and r[93] in {"1845-01-01", "1800-01-01"},
-        "Error361": lambda r: r[96] > "1900-01-01" and r[97] not in {"1", "2", "3", "4", "5", "6", "7"},
+        "Error361": lambda r: r[96] > "1900-01-01" and r[97] not in {"1", "2", "3", "4", "5', '6', '7'},
         "Error362": lambda r: r[10] == "F" and r[96] == "1845-01-01" and age(r) >= 600,
         "Error364": lambda r: age(r) < 420 and r[97] != "0",
         "Error367": lambda r: (r[100] == "1800-01-01" or r[100] > "1900-01-01") and r[101] == "0",
@@ -63,8 +63,16 @@ def build_rules():
 
 
 def main():
-    lines = TXT.read_text(encoding="utf-8").splitlines()
+    if len(sys.argv) != 2:
+        raise SystemExit("Uso: python tools/test_rped_batch294.py <archivo.txt>")
+    txt = Path(sys.argv[1])
+    lines = txt.read_text(encoding="utf-8").splitlines()
     records = [line.split("|") for line in lines if line.startswith("2|")]
+    if len(lines) != 432 or len(records) != 431:
+        raise SystemExit(f"Estructura inesperada: lineas={len(lines)}, registros={len(records)}")
+    if lines[0].split("|") != ["1", "EPSS41", "2026-09-01", "2026-09-30", "431"]:
+        raise SystemExit("Registro de control distinto al TXT de prueba documentado")
+
     rules = build_rules()
     allowed = {
         380: (33, {"1800-01-01", "1845-01-01"}), 381: (29, {"1800-01-01"}), 382: (31, {"1800-01-01"}),
@@ -91,7 +99,6 @@ def main():
     print(f"records={len(records)} rules={len(rules)}")
     for code in rules:
         print(f"{code}: {counts[code]}")
-    print("examples:")
     for code, rows in examples.items():
         print(f"{code}: {rows}")
 
