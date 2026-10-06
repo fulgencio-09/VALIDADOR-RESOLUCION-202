@@ -11,5 +11,6 @@ Route::get('/validations', [ValidationController::class, 'index']);
 Route::get('/validations/{validationRun}', [ValidationController::class, 'show']);
 Route::post('/validations', [ValidationController::class, 'store']);
 Route::get('/corrections/catalog', [CorrectionController::class, 'catalog']);
+Route::get('/validations/{validationRun}/corrections', [CorrectionController::class, 'history']);
 Route::post('/validations/{validationRun}/correct', [CorrectionController::class, 'apply']);
 Route::get('/validations/{validationRun}/corrected-download', [CorrectionController::class, 'download']);
