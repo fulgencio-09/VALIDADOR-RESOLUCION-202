@@ -1,4 +1,4 @@
-"""Prueba estructural y reglas RPED Error020-Error096 sobre un TXT real."""
+"""Prueba estructural y reglas RPED ejecutables sobre un TXT real."""
 from __future__ import annotations
 import re
 import sys
@@ -8,6 +8,13 @@ from pathlib import Path
 EXPECTED_RECORDS = 431
 EXPECTED_FIELDS = 119
 CUTOFF_DATE = date(2026, 9, 30)
+DATE_CUTOFF_RULES = {
+    9: "Error120", 29: "Error121", 31: "Error122", 49: "Error123", 50: "Error124", 51: "Error125",
+    52: "Error126", 53: "Error127", 55: "Error128", 56: "Error129", 58: "Error130", 62: "Error131",
+    72: "Error139", 80: "Error144", 82: "Error145", 84: "Error146", 87: "Error147", 91: "Error148",
+    93: "Error149", 96: "Error150", 99: "Error151", 100: "Error152", 106: "Error155", 110: "Error157",
+    111: "Error158", 112: "Error159",
+}
 
 
 def age_months(value: str) -> int:
@@ -55,7 +62,7 @@ def check(path: Path) -> dict[str, int]:
         "Error070": sum(r[87] != "1845-01-01" and age_months(r[9]) < 120 for r in records),
         "Error071": sum(r[87] != "1845-01-01" and r[10] != "F" for r in records),
         "Error072": sum(r[88] != "0" and age_months(r[9]) < 120 for r in records),
-        "Error073": sum(r[88] != "0" and r[10] != "F" for r in records),
+        "Error073": sum(r[88] != "0" and r[10] != "F'" for r in records),
         "Error074": sum(r[89] in {"1", "2", "3", "4", "999"} and age_months(r[9]) < 120 for r in records),
         "Error075": sum(r[89] != "0" and r[10] != "F" for r in records),
         "Error076": sum(r[90] != "0" and age_months(r[9]) <= 120 for r in records),
@@ -72,6 +79,15 @@ def check(path: Path) -> dict[str, int]:
         "Error094": sum(r[99] > "1900-01-01" and r[10] != "F" for r in records),
         "Error095": sum(r[100] > "1900-01-01" and r[10] != "F" for r in records),
         "Error096": sum(r[101] in {"1", "2", "3", "4", "5", "21"} and r[10] != "F" for r in records),
+    }
+
+    for variable, code in DATE_CUTOFF_RULES.items():
+        violations[code] = sum(
+            value not in {"", "1845-01-01"} and value > CUTOFF_DATE.isoformat()
+            for value in (record[variable] for record in records)
+        )
+
+    violations.update({
         "Error653": sum(r[113] not in {"1", "2", "3", "4", "21"} for r in records if r[113] != ""),
         "Error655": sum(r[114] not in {"0", "4", "5", "6", "21"} for r in records if r[114] != ""),
         "Error656": sum(r[115] != "0" for r in records),
@@ -80,7 +96,8 @@ def check(path: Path) -> dict[str, int]:
         "Error676": sum(_error676(r) for r in records),
         "Error677": sum(r[9] < "1900-01-01" for r in records if r[9] != ""),
         "Error678": sum(r[102] not in {"0", "21"} and re.fullmatch(r"\d{12}", r[102]) is None for r in records if r[102] != ""),
-    }
+    })
+
     assert all(value == 0 for value in violations.values()), violations
     return {"records": len(records), **violations}
 
