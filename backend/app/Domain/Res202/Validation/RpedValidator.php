@@ -21,7 +21,7 @@ final class RpedValidator
         $business=[]; $records=0;
         $control=isset($lines[0])?explode('|',$lines[0]):[];
         $cutoffDate=(($control[0]??'')==='1')?($control[3]??null):null;
-        $rules=array_merge($rules,RpedAdditionalRuleCatalog::executable());
+        $rules=array_merge($rules,RpedAdditionalRuleCatalog::executable(),RpedBatch294RuleCatalog::executable());
         foreach($lines as $lineNumber=>$line){
             $fields=explode('|',$line);
             if(($fields[0]??'')!=='2'||count($fields)!==count($variables))continue;
