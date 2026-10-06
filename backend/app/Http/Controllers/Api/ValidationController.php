@@ -52,11 +52,12 @@ final class ValidationController
             if (count($variables) !== 119) throw new \RuntimeException('El catálogo RPED no contiene las 119 variables esperadas.');
             $result = $this->validator->validate($content,$variables,RpedRuleCatalog::executable());
             $errorCount = count(array_filter($result['results'],static fn(array $item):bool=>strtoupper((string)($item['severity']??'ERROR'))==='ERROR'));
-            $warningCount = count(array_filter($result['results'],static fn(array $item):bool=>strtoupper((string)($item['severity']??''))==='WARNING');
+            $warningCount = count(array_filter($result['results'],static fn(array $item):bool=>strtoupper((string)($item['severity']??''))==='WARNING'));
             $rulesLoaded = count(RpedRuleCatalog::executable());
-            $filename = $uploaded->getClientOriginalName();
+            $filename = basename($uploaded->getClientOriginalName());
+            $safeName = preg_replace('/[^A-Za-z0-9._-]/','_', $filename) ?: 'archivo.txt';
             $hash = hash('sha256',$content);
-            $sourcePath = 'validation-sources/'.now()->format('Y/m/d').'/'.uniqid('res202_',true).'_'.$filename;
+            $sourcePath = 'validation-sources/'.now()->format('Y/m/d').'/'.uniqid('res202_',true).'_'.$safeName;
             Storage::disk('local')->put($sourcePath,$content);
             $run = ValidationRun::create([
                 'filename'=>$filename,'file_hash'=>$hash,'source_path'=>$sourcePath,'size_bytes'=>strlen($content),
