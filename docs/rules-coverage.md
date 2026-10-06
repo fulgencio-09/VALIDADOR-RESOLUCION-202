@@ -7,8 +7,8 @@ Fuente única: `Lineamientos-anexo-tecnico-res-202-2021-v8.xlsx`, hoja `Lineamie
 | Métrica | Cantidad |
 |---|---:|
 | Reglas/códigos oficiales en catálogo | 395 |
-| Reglas ejecutables en catálogos de validación | 338 |
-| Reglas aún pendientes de implementación/verificación | 57 |
+| Reglas ejecutables en catálogos de validación | 337 |
+| Reglas aún pendientes de implementación/verificación | 58 |
 | Errores oficiales | 377 |
 | Warnings oficiales | 18 |
 | Reglas ejecutables del rango Error020-Error096 | 33 |
@@ -19,7 +19,7 @@ Fuente única: `Lineamientos-anexo-tecnico-res-202-2021-v8.xlsx`, hoja `Lineamie
 | Reglas ejecutables del bloque Error535-Error540 | 6 |
 | Reglas ejecutables del bloque Error638-Error652 | 14 |
 | Reglas ejecutables del lote de fechas/contenido/comodines/valores | 106 |
-| Reglas ejecutables del lote de consistencia | 50 |
+| Reglas ejecutables del lote de consistencia | 49 |
 
 ## Fuente de verdad y control contra reglas ajenas
 
@@ -37,9 +37,7 @@ Implementadas y parametrizadas las 33 reglas ejecutables del rango, manteniendo 
 
 ### Fechas posteriores a la fecha de corte
 
-Implementadas las 36 reglas correspondientes al bloque ya identificado en la fuente:
-
-`Error120`, `Error121`, `Error122`, `Error123`, `Error124`, `Error125`, `Error126`, `Error127`, `Error128`, `Error129`, `Error130`, `Error131`, `Error132`, `Error133`, `Error134`, `Error135`, `Error136`, `Error138`, `Error139`, `Error140`, `Error141`, `Error142`, `Error143`, `Error144`, `Error145`, `Error146`, `Error147`, `Error148`, `Error149`, `Error150`, `Error151`, `Error152`, `Error155`, `Error157`, `Error158`, `Error159`.
+Implementadas las 36 reglas correspondientes al bloque ya identificado en la fuente.
 
 ### Fecha de actividad vs. fecha de nacimiento
 
@@ -59,7 +57,7 @@ No aparecen `Error187`, `Error204` ni `Error206` como códigos de error en las f
 
 ## Lote de consistencia
 
-`RpedBatchConsistencySourceRuleCatalog.php` agrega 50 reglas directamente traducidas de la columna `VALIDACIONES`, incluyendo coherencia entre resultado y fecha, restricciones por edad, sexo, comodines, actividades y condiciones entre variables.
+`RpedBatchConsistencySourceRuleCatalog.php` agrega 49 reglas directamente traducidas de la columna `VALIDACIONES`, incluyendo coherencia entre resultado y fecha, restricciones por edad, sexo, comodines, actividades y condiciones entre variables. `Error539` no se duplica porque ya pertenece al lote Error535-Error540.
 
 Estas reglas usan exclusivamente variables, valores, edades y fechas descritos en el anexo v8; no introducen reglas clínicas externas.
 
@@ -87,7 +85,7 @@ Los resultados previamente documentados sobre el TXT real se conservan como prue
 
 ## Pendientes
 
-Las 57 reglas restantes se mantienen identificadas por su código oficial y no se sustituyen por reglas aproximadas. La siguiente fase debe traducirlas una por una desde la columna `VALIDACIONES` de la misma hoja, con pruebas de caso positivo y negativo.
+Las 58 reglas restantes se mantienen identificadas por su código oficial y no se sustituyen por reglas aproximadas. La siguiente fase debe traducirlas una por una desde la columna `VALIDACIONES` de la misma hoja, con pruebas de caso positivo y negativo.
 
 ## Criterio de cobertura
 
