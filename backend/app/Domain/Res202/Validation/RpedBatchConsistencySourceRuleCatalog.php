@@ -29,7 +29,6 @@ final class RpedBatchConsistencySourceRuleCatalog
             self::f('Error530',62,['all'=>[['age_years'=>true,'op'=>'lt','value'=>'3'],['any'=>[['field'=>28,'op'=>'neq','value'=>'0'],['field'=>62,'op'=>'neq','value'=>'1845-01-01']]]]),
             self::f('Error532',34,['all'=>[['field'=>34,'op'=>'eq','value'=>'170'],['field'=>3,'op'=>'in','values'=>['CE','PA','CD','PE','SC','DE']]]]),
             self::f('Error534',35,['all'=>[['field'=>35,'op'=>'in','values'=>['4','5']],['field'=>56,'op'=>'lt','value'=>'1900-01-01'],['field'=>58,'op'=>'lt','value'=>'1900-01-01']]]),
-            self::f('Error539',69,['all'=>[['field'=>37,'op'=>'in','values'=>['4','5']],['field'=>69,'op'=>'lte','value'=>'1900-01-01']]]),
             self::f('Error542',69,['all'=>[['field'=>37,'op'=>'eq','value'=>'21'],['field'=>69,'op'=>'not_in','values'=>array_slice($w,0,6)]]]),
             self::f('Error543',75,['all'=>[['field'=>38,'op'=>'in','values'=>['4','5']],['field'=>75,'op'=>'lte','value'=>'1900-01-01']]]),
             self::f('Error546',75,['all'=>[['field'=>38,'op'=>'eq','value'=>'21'],['field'=>75,'op'=>'not_in','values'=>array_slice($w,0,6)]]]),
@@ -85,7 +84,6 @@ final class RpedBatchConsistencySourceRuleCatalog
         return ['code'=>$code,'severity'=>$severity,'operation'=>'forbidden_when','variable'=>$variable,'when'=>$when,'message'=>'Validación RPED v8 no cumplida: '.$code];
     }
 
-    /** @return array<int,string> */
     private static function wildcards(): array
     {
         return ['1800-01-01','1805-01-01','1810-01-01','1825-01-01','1830-01-01','1835-01-01','1845-01-01'];
