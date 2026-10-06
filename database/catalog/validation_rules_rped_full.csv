@@ -1,3 +1,0 @@
-code,severity,variable_no,variable_name,validation,description,related_variables,source_version,active
-Error021,ERROR,2,Código de habilitación IPS primaria,Validar que el código registrado en la variable 2 se encuentre en el REPS del MSPS,La IPS primaria no existe,"Variable 2, tabla REPS",v8,True
-Error220,ERROR,4,Número de identificación del usuario,Validar caracteres permitidos,Número de identificación con caracteres no permitidos,Variable 4,v8,True
