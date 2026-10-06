@@ -25,12 +25,72 @@ final class ValidationController
             'id','filename','file_hash','size_bytes','annex','status','progress','records','processed_records','total_records',
             'rules_loaded','error_count','warning_count','result_count','validated_at','created_at','completed_at',
         ]);
-        return response()->json(['data'=>$runs]);
+        return response()->json(['data' => $runs]);
     }
 
     public function show(ValidationRun $validationRun): JsonResponse
     {
         return response()->json($this->payload($validationRun, true));
+    }
+
+    public function results(Request $request, ValidationRun $validationRun): JsonResponse
+    {
+        $page = max(1, (int) $request->integer('page', 1));
+        $perPage = min(100, max(10, (int) $request->integer('per_page', 50)));
+        $severity = strtoupper(trim((string) $request->query('severity', '')));
+        $code = strtolower(trim((string) $request->query('code', '')));
+        $variable = $request->query('variable');
+        $line = $request->query('line');
+
+        $items = array_values(array_filter($validationRun->results ?? [], static function (array $item) use ($severity, $code, $variable, $line): bool {
+            if ($severity !== '' && strtoupper((string) ($item['severity'] ?? '')) !== $severity) return false;
+            if ($code !== '' && !str_contains(strtolower((string) ($item['code'] ?? '')), $code)) return false;
+            if ($variable !== null && $variable !== '' && (string) ($item['variable'] ?? '') !== (string) $variable) return false;
+            if ($line !== null && $line !== '' && (string) ($item['line'] ?? '') !== (string) $line) return false;
+            return true;
+        }));
+
+        $total = count($items);
+        $offset = ($page - 1) * $perPage;
+        $items = array_slice($items, $offset, $perPage);
+
+        return response()->json([
+            'data' => $items,
+            'meta' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => max(1, (int) ceil($total / $perPage)),
+            ],
+            'filters' => compact('severity', 'code', 'variable', 'line'),
+        ]);
+    }
+
+    public function summary(ValidationRun $validationRun): JsonResponse
+    {
+        $summary = [];
+        foreach (($validationRun->results ?? []) as $item) {
+            $code = (string) ($item['code'] ?? 'SIN_CODIGO');
+            if (!isset($summary[$code])) {
+                $summary[$code] = [
+                    'code' => $code,
+                    'severity' => strtoupper((string) ($item['severity'] ?? 'ERROR')),
+                    'count' => 0,
+                    'first_line' => $item['line'] ?? null,
+                ];
+            }
+            $summary[$code]['count']++;
+        }
+        usort($summary, static fn(array $a, array $b): int => $b['count'] <=> $a['count']);
+
+        return response()->json([
+            'data' => $summary,
+            'totals' => [
+                'results' => count($validationRun->results ?? []),
+                'errors' => (int) $validationRun->error_count,
+                'warnings' => (int) $validationRun->warning_count,
+            ],
+        ]);
     }
 
     public function status(ValidationRun $validationRun): JsonResponse
@@ -40,10 +100,10 @@ final class ValidationController
 
     public function store(Request $request): JsonResponse
     {
-        $request->validate(['file'=>['required','file','max:51200']]);
+        $request->validate(['file' => ['required', 'file', 'max:51200']]);
         $uploaded = $request->file('file');
         if ($uploaded === null || strtolower($uploaded->getClientOriginalExtension()) !== 'txt') {
-            return response()->json(['message'=>'Solo se permiten archivos TXT para la validación RPED.','errors'=>['file'=>['El archivo debe tener extensión .txt.']]],422);
+            return response()->json(['message' => 'Solo se permiten archivos TXT para la validación RPED.', 'errors' => ['file' => ['El archivo debe tener extensión .txt.']]], 422);
         }
         try {
             $content = file_get_contents($uploaded->getRealPath());
@@ -52,69 +112,70 @@ final class ValidationController
             if (count($variables) !== 119) throw new \RuntimeException('El catálogo RPED no contiene las 119 variables esperadas.');
 
             $filename = basename($uploaded->getClientOriginalName());
-            $safeName = preg_replace('/[^A-Za-z0-9._-]/','_',$filename) ?: 'archivo.txt';
-            $hash = hash('sha256',$content);
+            $safeName = preg_replace('/[^A-Za-z0-9._-]/', '_', $filename) ?: 'archivo.txt';
+            $hash = hash('sha256', $content);
             $size = strlen($content);
-            $sourcePath = 'validation-sources/'.now()->format('Y/m/d').'/'.uniqid('res202_',true).'_'.$safeName;
-            Storage::disk('local')->put($sourcePath,$content);
+            $sourcePath = 'validation-sources/' . now()->format('Y/m/d') . '/' . uniqid('res202_', true) . '_' . $safeName;
+            Storage::disk('local')->put($sourcePath, $content);
             $rulesLoaded = count(RpedRuleCatalog::executable());
 
             if ($size > 5 * 1024 * 1024) {
                 $run = ValidationRun::create([
-                    'filename'=>$filename,'file_hash'=>$hash,'source_path'=>$sourcePath,'size_bytes'=>$size,
-                    'annex'=>'RPED','status'=>'QUEUED','progress'=>0,'rules_loaded'=>$rulesLoaded,
+                    'filename' => $filename, 'file_hash' => $hash, 'source_path' => $sourcePath, 'size_bytes' => $size,
+                    'annex' => 'RPED', 'status' => 'QUEUED', 'progress' => 0, 'rules_loaded' => $rulesLoaded,
                 ]);
                 ValidateRpedFile::dispatch($run->id)->onQueue('res202-validation');
-                return response()->json(['id'=>$run->id,'valid'=>null,'queued'=>true,'status'=>'QUEUED','filename'=>$filename,
-                    'size_bytes'=>$size,'file_hash'=>$hash,'records'=>0,'rules_loaded'=>$rulesLoaded,'error_count'=>0,
-                    'warning_count'=>0,'result_count'=>0,'results'=>[]],202);
+                return response()->json(['id' => $run->id, 'valid' => null, 'queued' => true, 'status' => 'QUEUED', 'filename' => $filename,
+                    'size_bytes' => $size, 'file_hash' => $hash, 'records' => 0, 'rules_loaded' => $rulesLoaded, 'error_count' => 0,
+                    'warning_count' => 0, 'result_count' => 0, 'results' => []], 202);
             }
 
-            $result = $this->validator->validate($content,$variables,RpedRuleCatalog::executable());
-            $errorCount = count(array_filter($result['results'], static fn(array $item): bool => strtoupper((string)($item['severity'] ?? 'ERROR')) === 'ERROR'));
-            $warningCount = count(array_filter($result['results'], static fn(array $item): bool => strtoupper((string)($item['severity'] ?? '')) === 'WARNING'));
+            $result = $this->validator->validate($content, $variables, RpedRuleCatalog::executable());
+            $errorCount = count(array_filter($result['results'], static fn(array $item): bool => strtoupper((string) ($item['severity'] ?? 'ERROR')) === 'ERROR'));
+            $warningCount = count(array_filter($result['results'], static fn(array $item): bool => strtoupper((string) ($item['severity'] ?? '')) === 'WARNING'));
             $run = ValidationRun::create([
-                'filename'=>$filename,'file_hash'=>$hash,'source_path'=>$sourcePath,'size_bytes'=>$size,'annex'=>'RPED',
-                'status'=>'COMPLETED','progress'=>100,'records'=>$result['records'],'processed_records'=>$result['records'],
-                'total_records'=>$result['records'],'rules_loaded'=>$rulesLoaded,'error_count'=>$errorCount,
-                'warning_count'=>$warningCount,'result_count'=>count($result['results']),'results'=>$result['results'],
-                'validated_at'=>now(),'started_at'=>now(),'completed_at'=>now(),
+                'filename' => $filename, 'file_hash' => $hash, 'source_path' => $sourcePath, 'size_bytes' => $size, 'annex' => 'RPED',
+                'status' => 'COMPLETED', 'progress' => 100, 'records' => $result['records'], 'processed_records' => $result['records'],
+                'total_records' => $result['records'], 'rules_loaded' => $rulesLoaded, 'error_count' => $errorCount,
+                'warning_count' => $warningCount, 'result_count' => count($result['results']), 'results' => $result['results'],
+                'validated_at' => now(), 'started_at' => now(), 'completed_at' => now(),
             ]);
-            return response()->json(['id'=>$run->id,'valid'=>$errorCount===0,'queued'=>false,'status'=>'COMPLETED',
-                'filename'=>$filename,'size_bytes'=>$size,'file_hash'=>$hash,'records'=>$result['records'],
-                'rules_loaded'=>$rulesLoaded,'error_count'=>$errorCount,'warning_count'=>$warningCount,
-                'result_count'=>count($result['results']),'results'=>$result['results']]);
+            return response()->json(['id' => $run->id, 'valid' => $errorCount === 0, 'queued' => false, 'status' => 'COMPLETED',
+                'filename' => $filename, 'size_bytes' => $size, 'file_hash' => $hash, 'records' => $result['records'],
+                'rules_loaded' => $rulesLoaded, 'error_count' => $errorCount, 'warning_count' => $warningCount,
+                'result_count' => count($result['results']), 'results' => $result['results']]);
         } catch (Throwable $exception) {
             report($exception);
-            return response()->json(['message'=>'No fue posible procesar el archivo.','detail'=>config('app.debug')?$exception->getMessage():null],500);
+            return response()->json(['message' => 'No fue posible procesar el archivo.', 'detail' => config('app.debug') ? $exception->getMessage() : null], 500);
         }
     }
 
     public function downloadReport(ValidationRun $validationRun): StreamedResponse
     {
-        $filename = 'reporte-res202-'.$validationRun->id.'.csv';
+        $filename = 'reporte-res202-' . $validationRun->id . '.csv';
         return response()->streamDownload(function () use ($validationRun): void {
-            $out = fopen('php://output','wb');
-            fputcsv($out,['Código','Severidad','Línea','Variable','Mensaje','Valor'],';');
+            $out = fopen('php://output', 'wb');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Código', 'Severidad', 'Línea', 'Variable', 'Mensaje', 'Valor'], ';');
             foreach (($validationRun->results ?? []) as $item) {
-                fputcsv($out,[$item['code']??'', $item['severity']??'', $item['line']??'', $item['variable']??'', $item['message']??'', $item['value']??''],';');
+                fputcsv($out, [$item['code'] ?? '', $item['severity'] ?? '', $item['line'] ?? '', $item['variable'] ?? '', $item['message'] ?? '', $item['value'] ?? ''], ';');
             }
             fclose($out);
-        },$filename,['Content-Type'=>'text/csv; charset=UTF-8']);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     public function health(): JsonResponse
     {
-        return response()->json(['service'=>'res202-validator-api','status'=>'ok','version'=>'v1']);
+        return response()->json(['service' => 'res202-validator-api', 'status' => 'ok', 'version' => 'v1']);
     }
 
     private function payload(ValidationRun $run, bool $includeResults): array
     {
-        return ['id'=>$run->id,'filename'=>$run->filename,'file_hash'=>$run->file_hash,'size_bytes'=>$run->size_bytes,
-            'annex'=>$run->annex,'status'=>$run->status,'progress'=>$run->progress,'records'=>$run->records,
-            'processed_records'=>$run->processed_records,'total_records'=>$run->total_records,'rules_loaded'=>$run->rules_loaded,
-            'error_count'=>$run->error_count,'warning_count'=>$run->warning_count,'result_count'=>$run->result_count,
-            'results'=>$includeResults ? ($run->results ?? []) : [],'validated_at'=>$run->validated_at,
-            'started_at'=>$run->started_at,'completed_at'=>$run->completed_at,'error_message'=>$run->error_message];
+        return ['id' => $run->id, 'filename' => $run->filename, 'file_hash' => $run->file_hash, 'size_bytes' => $run->size_bytes,
+            'annex' => $run->annex, 'status' => $run->status, 'progress' => $run->progress, 'records' => $run->records,
+            'processed_records' => $run->processed_records, 'total_records' => $run->total_records, 'rules_loaded' => $run->rules_loaded,
+            'error_count' => $run->error_count, 'warning_count' => $run->warning_count, 'result_count' => $run->result_count,
+            'results' => $includeResults ? ($run->results ?? []) : [], 'validated_at' => $run->validated_at,
+            'started_at' => $run->started_at, 'completed_at' => $run->completed_at, 'error_message' => $run->error_message];
     }
 }
