@@ -30,6 +30,12 @@ final class RpedValidator
             foreach($this->ruleEngine->validate($record,$rules,$context) as $result){$result['line']=$lineNumber+1;$business[]=$result;}
         }
         $results=array_merge($structural,$business);
-        return ['valid'=>$results===[],'records'=>$records,'errors'=>count(array_filter($results,static fn(array$r):bool=>($r['severity']??'ERROR')!=='WARNING'),'warnings'=>count(array_filter($results,static fn(array$r):bool=>($r['severity']??'')==='WARNING'),'results'=>$results];
+        return [
+            'valid'=>$results===[],
+            'records'=>$records,
+            'errors'=>count(array_filter($results,static fn(array$r):bool=>($r['severity']??'ERROR')!=='WARNING')),
+            'warnings'=>count(array_filter($results,static fn(array$r):bool=>($r['severity']??'')==='WARNING')),
+            'results'=>$results,
+        ];
     }
 }
