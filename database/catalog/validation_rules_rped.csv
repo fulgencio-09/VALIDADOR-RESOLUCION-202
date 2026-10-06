@@ -1,0 +1,15 @@
+code,severity,variable,operation,when_variable,when_value,expected,values,date,message,source_version,active
+Error020,ERROR,9,required,,,,,,La fecha de nacimiento es obligatoria.,v8,true
+Error030,ERROR,10,equals_when,14,1,F,,,Si la gestante es 1, el sexo debe ser F.,v8,true
+Error030,ERROR,10,equals_when,14,2,F,,,Si la gestante es 2, el sexo debe ser F.,v8,true
+Error030,ERROR,10,equals_when,14,21,F,,,Si la gestante es 21, el sexo debe ser F.,v8,true
+Error041,ERROR,29,equals_when,30,999,1800-01-01,,,Si el peso es 999, la fecha del peso debe ser 1800-01-01.,v8,true
+Error043,ERROR,31,equals_when,32,999,1800-01-01,,,Si la talla es 999, la fecha de la talla debe ser 1800-01-01.,v8,true
+Error047,ERROR,47,equals_when,47,1,F,,,La condición de sexo para tratamiento ablativo/LETZ requiere sexo femenino.,v8,false
+Error049,ERROR,10,equals_when,49,!NULL,F,,,La fecha de atención de parto o cesárea implica sexo femenino.,v8,false
+Error050,ERROR,10,equals_when,50,!NULL,F,,,La fecha de salida de atención de parto o cesárea implica sexo femenino.,v8,false
+Error653,ERROR,113,in,,,,1|2|3|4|21,,El resultado de baciloscopia diagnóstico solo puede tomar los valores permitidos.,v8,true
+Error655,ERROR,114,in,,,,0|4|5|6|21,,La clasificación del riesgo cardiovascular solo puede tomar los valores permitidos.,v8,true
+Error656,ERROR,115,in,,,,0,,El tratamiento para sífilis gestacional debe ser 0.,v8,true
+Error657,ERROR,116,in,,,,0,,El tratamiento para sífilis congénita debe ser 0.,v8,true
+Error665,ERROR,117,in,,,,0|4|5|6|21,,La clasificación del riesgo metabólico solo puede tomar los valores permitidos.,v8,true
