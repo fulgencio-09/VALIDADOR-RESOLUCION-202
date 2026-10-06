@@ -16,6 +16,9 @@ final class RpedValidator
      * Ejecuta primero la validación estructural y, si el registro es válido
      * en cantidad de campos, aplica las reglas parametrizadas disponibles.
      *
+     * El contexto de negocio incluye la fecha de corte del registro de
+     * control (tipo 1), necesaria para las reglas dependientes de edad.
+     *
      * @param array<int,array{name:string,length:int,type:string}> $variables
      * @param array<int,array<string,mixed>> $rules
      * @return array<string,mixed>
@@ -28,6 +31,8 @@ final class RpedValidator
 
         $business = [];
         $records = 0;
+        $control = isset($lines[0]) ? explode('|', $lines[0]) : [];
+        $cutoffDate = (($control[0] ?? '') === '1') ? ($control[3] ?? null) : null;
 
         foreach ($lines as $lineNumber => $line) {
             $fields = explode('|', $line);
@@ -41,7 +46,8 @@ final class RpedValidator
             }
 
             $records++;
-            foreach ($this->ruleEngine->validate($record, $rules) as $result) {
+            $context = $cutoffDate !== null ? ['cutoff_date' => $cutoffDate] : [];
+            foreach ($this->ruleEngine->validate($record, $rules, $context) as $result) {
                 $result['line'] = $lineNumber + 1;
                 $business[] = $result;
             }
