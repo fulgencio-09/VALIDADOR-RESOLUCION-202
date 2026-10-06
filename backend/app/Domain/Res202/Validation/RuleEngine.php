@@ -29,6 +29,7 @@ final class RuleEngine
                 'date_not_before' => $this->dateNotBefore($value, $rule['date'] ?? null),
                 'date_not_after' => $this->dateNotAfter($value, $rule['date'] ?? null),
                 'date_before' => $this->dateBefore($value, $rule['date'] ?? null),
+                'date_before_birth' => $this->dateBeforeBirth($record, $value, $rule),
                 'date_after_cutoff' => $this->dateAfterCutoff($value, $context['cutoff_date'] ?? null),
                 'length_by_value' => $this->lengthByValue($record, $rule),
                 'length_range_by_value' => $this->lengthRangeByValue($record, $rule),
@@ -76,15 +77,28 @@ final class RuleEngine
         if ($value === null || $value === '' || $cutoff === null || $cutoff === '') {
             return false;
         }
-
         $actual = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $value);
         $limit = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $cutoff);
-
         if ($actual === false || $limit === false) {
             return false;
         }
-
         return $actual > $limit;
+    }
+
+    private function dateBeforeBirth(array $record, mixed $value, array $rule): bool
+    {
+        if ($value === null || $value === '') return false;
+        $wildcards = array_map('strval', $rule['ignore_values'] ?? [
+            '1800-01-01','1805-01-01','1810-01-01','1825-01-01','1830-01-01','1835-01-01','1845-01-01',
+        ]);
+        if (in_array((string) $value, $wildcards, true)) return false;
+        $birthVariable = (int) ($rule['birth_variable'] ?? 9);
+        $birthValue = $record[$birthVariable] ?? null;
+        if ($birthValue === null || $birthValue === '' || in_array((string) $birthValue, $wildcards, true)) return false;
+        $actual = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $value);
+        $birth = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $birthValue);
+        if ($actual === false || $birth === false) return false;
+        return $actual <= $birth;
     }
 
     private function matchesCondition(array $record, array $condition, array $context): bool
