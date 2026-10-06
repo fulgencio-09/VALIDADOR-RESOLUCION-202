@@ -1,15 +1,18 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import axios from 'axios'
 
 const file = ref(null)
 const dragging = ref(false)
 const loading = ref(false)
+const historyLoading = ref(false)
 const status = ref('Listo para validar')
 const errorMessage = ref('')
 const validation = ref(null)
+const history = ref([])
 const severityFilter = ref('ALL')
 const codeFilter = ref('')
+const selectedRunId = ref(null)
 const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/$/, '')
 
 const filteredResults = computed(() => {
@@ -20,9 +23,22 @@ const filteredResults = computed(() => {
     .filter((item) => !code || item.code.toLowerCase().includes(code))
 })
 
+async function loadHistory() {
+  historyLoading.value = true
+  try {
+    const { data } = await axios.get(`${apiUrl}/validations`, { timeout: 15000 })
+    history.value = data.data || []
+  } catch {
+    history.value = []
+  } finally {
+    historyLoading.value = false
+  }
+}
+
 function selectFile(nextFile) {
   file.value = nextFile || null
   validation.value = null
+  selectedRunId.value = null
   errorMessage.value = ''
   status.value = file.value ? `Archivo seleccionado: ${file.value.name}` : 'Listo para validar'
 }
@@ -52,9 +68,11 @@ async function validateFile() {
       timeout: 120000,
     })
     validation.value = data
+    selectedRunId.value = data.id
     status.value = data.valid
       ? 'Validación finalizada: sin errores.'
       : `Validación finalizada: ${data.error_count} error(es) y ${data.warning_count} advertencia(s).`
+    await loadHistory()
   } catch (error) {
     const response = error.response?.data
     errorMessage.value = response?.message || 'No fue posible conectar con la API de validación.'
@@ -64,11 +82,32 @@ async function validateFile() {
   }
 }
 
+async function openRun(id) {
+  selectedRunId.value = id
+  errorMessage.value = ''
+  try {
+    const { data } = await axios.get(`${apiUrl}/validations/${id}`, { timeout: 30000 })
+    validation.value = data
+    file.value = null
+    status.value = `Historial cargado: ${data.filename}`
+    severityFilter.value = 'ALL'
+    codeFilter.value = ''
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  } catch (error) {
+    errorMessage.value = error.response?.data?.message || 'No fue posible cargar la validación seleccionada.'
+  }
+}
+
 function formatBytes(bytes) {
   if (!bytes) return '0 B'
   const units = ['B', 'KB', 'MB', 'GB']
   const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1)
   return `${(bytes / 1024 ** index).toFixed(index ? 1 : 0)} ${units[index]}`
+}
+
+function formatDate(value) {
+  if (!value) return '—'
+  return new Date(value).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })
 }
 
 function exportReport() {
@@ -86,6 +125,8 @@ function exportReport() {
   link.click()
   URL.revokeObjectURL(url)
 }
+
+onMounted(loadHistory)
 </script>
 
 <template>
@@ -139,13 +180,44 @@ function exportReport() {
       <article class="card metric"><span>Reglas ejecutadas</span><strong>{{ validation.rules_loaded }}</strong></article>
     </section>
 
+    <section class="card history-card">
+      <div class="section-heading">
+        <div>
+          <h2>Historial de validaciones</h2>
+          <p class="muted">Últimas 50 validaciones procesadas.</p>
+        </div>
+        <button class="secondary small" :disabled="historyLoading" @click="loadHistory">{{ historyLoading ? 'Actualizando...' : 'Actualizar' }}</button>
+      </div>
+
+      <div v-if="history.length" class="history-list">
+        <button
+          v-for="run in history"
+          :key="run.id"
+          class="history-item"
+          :class="{ selected: selectedRunId === run.id }"
+          @click="openRun(run.id)"
+        >
+          <span class="history-main">
+            <strong>{{ run.filename }}</strong>
+            <small>{{ formatDate(run.validated_at) }} · {{ formatBytes(run.size_bytes) }}</small>
+          </span>
+          <span class="history-stats">
+            <b>{{ run.records }}</b> registros
+            <span class="danger-text">{{ run.error_count }} errores</span>
+            <span>{{ run.warning_count }} advertencias</span>
+          </span>
+        </button>
+      </div>
+      <div v-else class="empty-state">Todavía no hay validaciones guardadas.</div>
+    </section>
+
     <section v-if="validation" class="card results-card">
       <div class="section-heading results-heading">
         <div>
           <h2>Resultados</h2>
           <p class="muted">{{ filteredResults.length }} hallazgo(s) visibles de {{ validation.result_count }}.</p>
         </div>
-        <span class="valid-state" :class="validation.valid ? 'ok' : 'bad'">{{ validation.valid ? 'SIN ERRORES' : 'REQUIERE CORRECCIÓN' }}</span>
+        <span class="valid-state" :class="validation.error_count === 0 ? 'ok' : 'bad'">{{ validation.error_count === 0 ? 'SIN ERRORES' : 'REQUIERE CORRECCIÓN' }}</span>
       </div>
 
       <div class="filters">
