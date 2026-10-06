@@ -14,9 +14,7 @@ final class RuleEngine
         $context = $this->enrichContext($record, $context);
 
         foreach ($rules as $rule) {
-            if (($rule['active'] ?? true) !== true) {
-                continue;
-            }
+            if (($rule['active'] ?? true) !== true) continue;
             $operation = (string) ($rule['operation'] ?? '');
             $variable = (int) ($rule['variable'] ?? -1);
             $value = $record[$variable] ?? null;
@@ -31,6 +29,8 @@ final class RuleEngine
                 'date_before' => $this->dateBefore($value, $rule['date'] ?? null),
                 'date_before_birth' => $this->dateBeforeBirth($record, $value, $rule),
                 'date_after_cutoff' => $this->dateAfterCutoff($value, $context['cutoff_date'] ?? null),
+                'date_after_cutoff_plus_days' => $this->dateAfterCutoffPlusDays($value, $context['cutoff_date'] ?? null, (int) ($rule['days'] ?? 0)),
+                'date_relation' => $this->dateRelation($record, $variable, $rule),
                 'length_by_value' => $this->lengthByValue($record, $rule),
                 'length_range_by_value' => $this->lengthRangeByValue($record, $rule),
                 'length_exact' => $this->lengthExact($value, (int) ($rule['length'] ?? 0)),
@@ -54,17 +54,11 @@ final class RuleEngine
 
     private function enrichContext(array $record, array $context): array
     {
-        if (!isset($context['cutoff_date']) || !is_string($context['cutoff_date'])) {
-            return $context;
-        }
-        if (isset($context['age_months'], $context['age_years'], $context['age_days'])) {
-            return $context;
-        }
+        if (!isset($context['cutoff_date']) || !is_string($context['cutoff_date'])) return $context;
+        if (isset($context['age_months'], $context['age_years'], $context['age_days'])) return $context;
         $birth = DateTimeImmutable::createFromFormat('!Y-m-d', (string) ($record[9] ?? ''));
         $cutoff = DateTimeImmutable::createFromFormat('!Y-m-d', $context['cutoff_date']);
-        if ($birth === false || $cutoff === false || $birth > $cutoff || $birth < new DateTimeImmutable('1900-01-01')) {
-            return $context;
-        }
+        if ($birth === false || $cutoff === false || $birth > $cutoff || $birth < new DateTimeImmutable('1900-01-01')) return $context;
         $diff = $birth->diff($cutoff);
         $context['age_years'] = $diff->y;
         $context['age_months'] = ($diff->y * 12) + $diff->m;
@@ -72,68 +66,66 @@ final class RuleEngine
         return $context;
     }
 
+    private function parseDate(mixed $value): ?DateTimeImmutable
+    {
+        if ($value === null || $value === '') return null;
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $value);
+        return $date === false ? null : $date;
+    }
+
     private function dateAfterCutoff(mixed $value, mixed $cutoff): bool
     {
-        if ($value === null || $value === '' || $cutoff === null || $cutoff === '') {
-            return false;
-        }
-        $actual = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $value);
-        $limit = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $cutoff);
-        if ($actual === false || $limit === false) {
-            return false;
-        }
-        return $actual > $limit;
+        $actual = $this->parseDate($value); $limit = $this->parseDate($cutoff);
+        return $actual !== null && $limit !== null && $actual > $limit;
+    }
+
+    private function dateAfterCutoffPlusDays(mixed $value, mixed $cutoff, int $days): bool
+    {
+        $actual = $this->parseDate($value); $limit = $this->parseDate($cutoff);
+        return $actual !== null && $limit !== null && $actual > $limit->modify(sprintf('+%d days', $days));
+    }
+
+    private function dateRelation(array $record, int $variable, array $rule): bool
+    {
+        $actual = $this->parseDate($record[$variable] ?? null);
+        $other = $this->parseDate($record[(int) ($rule['other_variable'] ?? -1)] ?? null);
+        if ($actual === null || $other === null) return false;
+        return match ((string) ($rule['relation'] ?? 'lt')) {
+            'lt' => $actual < $other,
+            'lte' => $actual <= $other,
+            'gt' => $actual > $other,
+            'gte' => $actual >= $other,
+            'eq' => $actual == $other,
+            'neq' => $actual != $other,
+            default => false,
+        };
     }
 
     private function dateBeforeBirth(array $record, mixed $value, array $rule): bool
     {
         if ($value === null || $value === '') return false;
-        $wildcards = array_map('strval', $rule['ignore_values'] ?? [
-            '1800-01-01','1805-01-01','1810-01-01','1825-01-01','1830-01-01','1835-01-01','1845-01-01',
-        ]);
+        $wildcards = array_map('strval', $rule['ignore_values'] ?? ['1800-01-01','1805-01-01','1810-01-01','1825-01-01','1830-01-01','1835-01-01','1845-01-01']);
         if (in_array((string) $value, $wildcards, true)) return false;
-        $birthVariable = (int) ($rule['birth_variable'] ?? 9);
-        $birthValue = $record[$birthVariable] ?? null;
+        $birthValue = $record[(int) ($rule['birth_variable'] ?? 9)] ?? null;
         if ($birthValue === null || $birthValue === '' || in_array((string) $birthValue, $wildcards, true)) return false;
-
-        if (isset($rule['min_valid_date']) && $rule['min_valid_date'] !== null && (string) $value <= (string) $rule['min_valid_date']) {
-            return false;
-        }
-
-        $actual = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $value);
-        $birth = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $birthValue);
-        if ($actual === false || $birth === false) return false;
-
-        $inclusive = (bool) ($rule['inclusive'] ?? true);
-        return $inclusive ? $actual <= $birth : $actual < $birth;
+        if (isset($rule['min_valid_date']) && $rule['min_valid_date'] !== null && (string) $value <= (string) $rule['min_valid_date']) return false;
+        $actual = $this->parseDate($value); $birth = $this->parseDate($birthValue);
+        if ($actual === null || $birth === null) return false;
+        return (bool) ($rule['inclusive'] ?? true) ? $actual <= $birth : $actual < $birth;
     }
 
     private function matchesCondition(array $record, array $condition, array $context): bool
     {
-        if (isset($condition['all'])) {
-            foreach ($condition['all'] as $child) {
-                if (!$this->matchesCondition($record, $child, $context)) return false;
-            }
-            return true;
-        }
-        if (isset($condition['any'])) {
-            foreach ($condition['any'] as $child) {
-                if ($this->matchesCondition($record, $child, $context)) return true;
-            }
-            return false;
-        }
+        if (isset($condition['all'])) { foreach ($condition['all'] as $child) if (!$this->matchesCondition($record, $child, $context)) return false; return true; }
+        if (isset($condition['any'])) { foreach ($condition['any'] as $child) if ($this->matchesCondition($record, $child, $context)) return true; return false; }
         $actual = $this->conditionValue($record, $condition, $context);
-        $operator = (string) ($condition['op'] ?? 'eq');
-        $expected = $condition['value'] ?? null;
+        $operator = (string) ($condition['op'] ?? 'eq'); $expected = $condition['value'] ?? null;
         return match ($operator) {
-            'eq' => (string) $actual === (string) $expected,
-            'neq' => (string) $actual !== (string) $expected,
+            'eq' => (string) $actual === (string) $expected, 'neq' => (string) $actual !== (string) $expected,
             'in' => in_array((string) $actual, array_map('strval', $condition['values'] ?? []), true),
             'not_in' => !in_array((string) $actual, array_map('strval', $condition['values'] ?? []), true),
-            'lt' => $this->compare($actual, $expected) < 0,
-            'lte' => $this->compare($actual, $expected) <= 0,
-            'gt' => $this->compare($actual, $expected) > 0,
-            'gte' => $this->compare($actual, $expected) >= 0,
+            'lt' => $this->compare($actual, $expected) < 0, 'lte' => $this->compare($actual, $expected) <= 0,
+            'gt' => $this->compare($actual, $expected) > 0, 'gte' => $this->compare($actual, $expected) >= 0,
             default => false,
         };
     }
@@ -156,8 +148,7 @@ final class RuleEngine
 
     private function conditionalFails(array $record, array $rule, array $context): bool
     {
-        return $this->matchesCondition($record, $rule['when'] ?? [], $context)
-            && !$this->matchesCondition($record, $rule['require'] ?? [], $context);
+        return $this->matchesCondition($record, $rule['when'] ?? [], $context) && !$this->matchesCondition($record, $rule['require'] ?? [], $context);
     }
 
     private function inAllowedValues(mixed $value, array $allowed): bool
@@ -185,54 +176,21 @@ final class RuleEngine
         return (string) ($record[(int) $rule['variable']] ?? '') === (string) ($rule['expected'] ?? '');
     }
 
-    private function dateNotBefore(mixed $value, mixed $date): bool
-    {
-        return $value !== null && $value !== '' && $date !== null && $date !== '' && (string) $value < (string) $date;
-    }
-
-    private function dateNotAfter(mixed $value, mixed $date): bool
-    {
-        return $value !== null && $value !== '' && $date !== null && $date !== '' && (string) $value > (string) $date;
-    }
-
-    private function dateBefore(mixed $value, mixed $date): bool
-    {
-        if ($value === null || $value === '' || $date === null || $date === '') return false;
-        $actual = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $value);
-        $minimum = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $date);
-        return $actual !== false && $minimum !== false && $actual < $minimum;
-    }
+    private function dateNotBefore(mixed $value, mixed $date): bool { return $value !== null && $value !== '' && $date !== null && $date !== '' && (string) $value < (string) $date; }
+    private function dateNotAfter(mixed $value, mixed $date): bool { return $value !== null && $value !== '' && $date !== null && $date !== '' && (string) $value > (string) $date; }
+    private function dateBefore(mixed $value, mixed $date): bool { $actual=$this->parseDate($value); $minimum=$this->parseDate($date); return $actual !== null && $minimum !== null && $actual < $minimum; }
 
     private function lengthByValue(array $record, array $rule): bool
     {
-        $selector = (string) ($record[(int) ($rule['selector_variable'] ?? -1)] ?? '');
-        $value = (string) ($record[(int) ($rule['variable'] ?? -1)] ?? '');
+        $selector = (string) ($record[(int) ($rule['selector_variable'] ?? -1)] ?? ''); $value = (string) ($record[(int) ($rule['variable'] ?? -1)] ?? '');
         if (!array_key_exists($selector, $rule['length_map'] ?? [])) return false;
-        $length = strlen($value);
-        foreach ($rule['length_map'][$selector] as $constraint) {
-            $min = $constraint['min'] ?? null;
-            $max = $constraint['max'] ?? null;
-            if (($min === null || $length >= (int) $min) && ($max === null || $length <= (int) $max)) return false;
-        }
+        $length = strlen($value); foreach ($rule['length_map'][$selector] as $constraint) { $min=$constraint['min']??null; $max=$constraint['max']??null; if (($min===null||$length>=(int)$min)&&($max===null||$length<=(int)$max)) return false; }
         return true;
     }
-
     private function lengthRangeByValue(array $record, array $rule): bool
     {
-        $value = (string) ($record[(int) ($rule['variable'] ?? -1)] ?? '');
-        if (in_array($value, array_map('strval', $rule['allowed_values'] ?? []), true)) return false;
-        if (!in_array(strlen($value), array_map('intval', $rule['allowed_lengths'] ?? []), true)) return true;
-        $pattern = $rule['allowed_pattern'] ?? null;
-        return $pattern !== null && preg_match((string) $pattern, $value) !== 1;
+        $value=(string)($record[(int)($rule['variable']??-1)]??''); if(in_array($value,array_map('strval',$rule['allowed_values']??[]),true))return false; if(!in_array(strlen($value),array_map('intval',$rule['allowed_lengths']??[]),true))return true; $pattern=$rule['allowed_pattern']??null; return $pattern!==null&&preg_match((string)$pattern,$value)!==1;
     }
-
-    private function lengthExact(mixed $value, int $length): bool
-    {
-        return $value !== null && $value !== '' && strlen((string) $value) !== $length;
-    }
-
-    private function regexFails(mixed $value, string $pattern): bool
-    {
-        return $value !== null && $value !== '' && $pattern !== '' && preg_match($pattern, (string) $value) !== 1;
-    }
+    private function lengthExact(mixed $value,int $length): bool{return $value!==null&&$value!==''&&strlen((string)$value)!==$length;}
+    private function regexFails(mixed $value,string $pattern): bool{return $value!==null&&$value!==''&&$pattern!==''&&preg_match($pattern,(string)$value)!==1;}
 }
