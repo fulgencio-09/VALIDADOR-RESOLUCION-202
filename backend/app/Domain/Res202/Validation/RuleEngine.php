@@ -9,17 +9,9 @@ final class RuleEngine
     /**
      * Ejecuta reglas parametrizadas sobre un registro RPED.
      *
-     * La regla se expresa como una operación simple y su configuración queda
-     * fuera del código del validador. Las reglas complejas se incorporarán
-     * progresivamente al mismo contrato.
-     *
-     * Operaciones soportadas:
-     * - required
-     * - in
-     * - equals_when
-     * - not_equals_when
-     * - date_not_before
-     * - date_not_after
+     * Las reglas se mantienen fuera del código mediante un catálogo. Esto
+     * permite ampliar la cobertura sin convertir el validador en una cadena
+     * de condiciones hard-coded.
      */
     public function validate(array $record, array $rules, array $context = []): array
     {
@@ -38,6 +30,7 @@ final class RuleEngine
                 'required' => $value === null || $value === '',
                 'in' => !$this->inAllowedValues($value, $rule['values'] ?? []),
                 'equals_when' => $this->equalsWhen($record, $rule),
+                'equals_when_any' => $this->equalsWhenAny($record, $rule),
                 'not_equals_when' => $this->notEqualsWhen($record, $rule),
                 'date_not_before' => $this->dateNotBefore($value, $rule['date'] ?? null),
                 'date_not_after' => $this->dateNotAfter($value, $rule['date'] ?? null),
@@ -74,6 +67,20 @@ final class RuleEngine
         $expected = (string) ($rule['expected'] ?? '');
 
         if ((string) ($record[$whenVariable] ?? '') !== $whenValue) {
+            return false;
+        }
+
+        return (string) ($record[(int) $rule['variable']] ?? '') !== $expected;
+    }
+
+    private function equalsWhenAny(array $record, array $rule): bool
+    {
+        $whenVariable = (int) ($rule['when_variable'] ?? -1);
+        $whenValues = array_filter(explode('|', (string) ($rule['when_value'] ?? '')), static fn (string $v): bool => $v !== '');
+        $expected = (string) ($rule['expected'] ?? '');
+        $actualCondition = (string) ($record[$whenVariable] ?? '');
+
+        if (!in_array($actualCondition, $whenValues, true)) {
             return false;
         }
 
