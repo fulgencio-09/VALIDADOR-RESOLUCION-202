@@ -29,6 +29,7 @@ final class RuleEngine
                 'date_not_before' => $this->dateNotBefore($value, $rule['date'] ?? null),
                 'date_not_after' => $this->dateNotAfter($value, $rule['date'] ?? null),
                 'date_before' => $this->dateBefore($value, $rule['date'] ?? null),
+                'date_after_cutoff' => $this->dateAfterCutoff($value, $context['cutoff_date'] ?? null),
                 'length_by_value' => $this->lengthByValue($record, $rule),
                 'length_range_by_value' => $this->lengthRangeByValue($record, $rule),
                 'length_exact' => $this->lengthExact($value, (int) ($rule['length'] ?? 0)),
@@ -68,6 +69,22 @@ final class RuleEngine
         $context['age_months'] = ($diff->y * 12) + $diff->m;
         $context['age_days'] = $diff->days ?? 0;
         return $context;
+    }
+
+    private function dateAfterCutoff(mixed $value, mixed $cutoff): bool
+    {
+        if ($value === null || $value === '' || $cutoff === null || $cutoff === '') {
+            return false;
+        }
+
+        $actual = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $value);
+        $limit = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $cutoff);
+
+        if ($actual === false || $limit === false) {
+            return false;
+        }
+
+        return $actual > $limit;
     }
 
     private function matchesCondition(array $record, array $condition, array $context): bool
