@@ -18,32 +18,43 @@ final class RpedValidator
         $structural = $this->structuralValidator->validate($content, $variables);
         $lines = preg_split('/\r\n|\n|\r/', $content) ?: [];
         $lines = array_values(array_filter($lines, static fn(string $line): bool => $line !== ''));
-        $business=[]; $records=0;
-        $control=isset($lines[0])?explode('|',$lines[0]):[];
-        $cutoffDate=(($control[0]??'')==='1')?($control[3]??null):null;
-        $rules=array_merge(
+        $business = [];
+        $records = 0;
+        $control = isset($lines[0]) ? explode('|', $lines[0]) : [];
+        $cutoffDate = (($control[0] ?? '') === '1') ? ($control[3] ?? null) : null;
+        $rules = array_merge(
             $rules,
             RpedAdditionalRuleCatalog::executable(),
             RpedBatch294RuleCatalog::executable(),
             RpedBatch535RuleCatalog::executable(),
+            RpedBatch600RuleCatalog::executable(),
             RpedBatch638RuleCatalog::executable(),
             RpedBatchCoreSourceRuleCatalog::executable(),
             RpedBatchConsistencySourceRuleCatalog::executable()
         );
-        foreach($lines as $lineNumber=>$line){
-            $fields=explode('|',$line);
-            if(($fields[0]??'')!=='2'||count($fields)!==count($variables))continue;
-            $record=[];foreach($fields as $index=>$value)$record[$index]=$value;
-            $records++;$context=$cutoffDate!==null?['cutoff_date'=>$cutoffDate]:[];
-            foreach($this->ruleEngine->validate($record,$rules,$context) as $result){$result['line']=$lineNumber+1;$business[]=$result;}
+        foreach ($lines as $lineNumber => $line) {
+            $fields = explode('|', $line);
+            if (($fields[0] ?? '') !== '2' || count($fields) !== count($variables)) {
+                continue;
+            }
+            $record = [];
+            foreach ($fields as $index => $value) {
+                $record[$index] = $value;
+            }
+            $records++;
+            $context = $cutoffDate !== null ? ['cutoff_date' => $cutoffDate] : [];
+            foreach ($this->ruleEngine->validate($record, $rules, $context) as $result) {
+                $result['line'] = $lineNumber + 1;
+                $business[] = $result;
+            }
         }
-        $results=array_merge($structural,$business);
+        $results = array_merge($structural, $business);
         return [
-            'valid'=>$results===[],
-            'records'=>$records,
-            'errors'=>count(array_filter($results,static fn(array$r):bool=>($r['severity']??'ERROR')!=='WARNING')),
-            'warnings'=>count(array_filter($results,static fn(array$r):bool=>($r['severity']??'')==='WARNING')),
-            'results'=>$results,
+            'valid' => $results === [],
+            'records' => $records,
+            'errors' => count(array_filter($results, static fn(array $r): bool => ($r['severity'] ?? 'ERROR') !== 'WARNING')),
+            'warnings' => count(array_filter($results, static fn(array $r): bool => ($r['severity'] ?? '') === 'WARNING')),
+            'results' => $results,
         ];
     }
 }
