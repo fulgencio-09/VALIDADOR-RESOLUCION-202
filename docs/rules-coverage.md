@@ -7,8 +7,8 @@ Fuente: `Lineamientos-anexo-tecnico-res-202-2021-v8.xlsx`, hoja `Lineamientos RP
 | Métrica | Cantidad |
 |---|---:|
 | Reglas/códigos oficiales en catálogo | 395 |
-| Reglas ejecutables en catálogos de validación | 163 |
-| Reglas aún pendientes de implementación | 232 |
+| Reglas ejecutables en catálogos de validación | 176 |
+| Reglas aún pendientes de implementación | 219 |
 | Errores oficiales | 377 |
 | Warnings oficiales | 18 |
 | Reglas ejecutables del rango Error020-Error096 | 33 |
@@ -16,6 +16,7 @@ Fuente: `Lineamientos-anexo-tecnico-res-202-2021-v8.xlsx`, hoja `Lineamientos RP
 | Reglas ejecutables del bloque fecha vs. nacimiento | 37 |
 | Reglas ejecutables adicionales Error220-Error244 | 9 |
 | Reglas ejecutables del bloque Error294-Error399 | 50 |
+| Reglas ejecutables del bloque Error638-Error652 | 13 |
 
 ## Familias implementadas
 
@@ -63,13 +64,23 @@ Para soportar las reglas de comparación entre dos campos se añadieron al motor
 
 También se reutiliza `wildcard_allowed` para las reglas de comodines de fechas específicas del anexo.
 
+### Error638-Error652
+
+Se implementaron 13 códigos activos del bloque:
+
+`Error638`, `Error639`, `Error640`, `Error641`, `Error642`, `Error643`, `Error645`, `Error646`, `Error647`, `Error649`, `Error650`, `Error651`, `Error652`.
+
+`Error644` permanece pendiente porque la fuente consultada identifica la validación como “Comodín inválido - Fecha de toma de glicemia basal”, pero la misma definición de la variable 105 permite los siete comodines del anexo; se requiere confirmar en la fuente v8 la condición exacta que diferencia un comodín válido de uno inválido antes de parametrizarla.
+
+`Error648` no aparece como código activo en el catálogo v8 utilizado para el proyecto y no se agrega artificialmente.
+
 ## Validación con TXT real
 
 El archivo `440900022701_30092026.txt` contiene 431 registros tipo 2 y 119 campos por registro.
 
-La prueba de integración del lote completo produjo **55 violaciones**, todas de `Error305`. Las otras 49 reglas del lote produjeron cero violaciones en este archivo. El detalle y ejemplos de `Error305` quedaron documentados en `docs/tests/440900022701_30092026-error294-399.md`.
+El lote Error294-Error399 produjo 55 violaciones, todas de `Error305`; las otras 49 reglas del lote produjeron cero violaciones. El detalle está documentado en `docs/tests/440900022701_30092026-error294-399.md`.
 
-El resultado no implica que `Error305` deba corregirse automáticamente: el validador debe presentar el hallazgo y dejar la corrección sujeta a revisión del dato fuente.
+El lote Error638-Error652 produjo **0 violaciones en sus 13 reglas implementadas** sobre el mismo TXT real. La prueba utiliza la fecha de corte `2026-09-30` y conserva los comodines definidos por el anexo.
 
 ## Criterio de cobertura
 
