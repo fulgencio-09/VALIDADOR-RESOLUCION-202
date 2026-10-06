@@ -1,4 +1,4 @@
-"""Prueba estructural y reglas RPED Error020-Error096, Error120-159 y Error171-182 sobre un TXT real."""
+"""Prueba estructural y reglas RPED Error020-Error096, Error120-159 y Error171-209 sobre un TXT real."""
 from __future__ import annotations
 import re
 import sys
@@ -29,14 +29,18 @@ def _error676(record: list[str]) -> bool:
     return (minimum is not None and length < minimum) or (maximum is not None and length > maximum)
 
 
-def _before_birth(record: list[str], variable: int) -> bool:
+def _before_birth(record: list[str], variable: int, inclusive: bool = True, min_valid_date: str | None = None) -> bool:
     value, birth = record[variable], record[9]
     if value in WILDCARD_DATES or birth in WILDCARD_DATES or not value or not birth:
         return False
+    if min_valid_date is not None and value <= min_valid_date:
+        return False
     try:
-        return date.fromisoformat(value) <= date.fromisoformat(birth)
+        actual = date.fromisoformat(value)
+        birth_date = date.fromisoformat(birth)
     except ValueError:
         return False
+    return actual <= birth_date if inclusive else actual < birth_date
 
 
 def check(path: Path) -> dict[str, int]:
@@ -121,6 +125,30 @@ def check(path: Path) -> dict[str, int]:
         "Error180": sum(_before_birth(r,58) for r in records),
         "Error181": sum(_before_birth(r,62) for r in records),
         "Error182": sum(_before_birth(r,63) for r in records),
+        "Error183": sum(_before_birth(r,64) for r in records),
+        "Error184": sum(_before_birth(r,65,False) for r in records),
+        "Error185": sum(_before_birth(r,66) for r in records),
+        "Error186": sum(_before_birth(r,67) for r in records),
+        "Error188": sum(_before_birth(r,69,False) for r in records),
+        "Error189": sum(_before_birth(r,72) for r in records),
+        "Error190": sum(_before_birth(r,73) for r in records),
+        "Error191": sum(_before_birth(r,75,False) for r in records),
+        "Error192": sum(_before_birth(r,76) for r in records),
+        "Error193": sum(_before_birth(r,78,False) for r in records),
+        "Error194": sum(_before_birth(r,80,False) for r in records),
+        "Error195": sum(_before_birth(r,82,False) for r in records),
+        "Error196": sum(_before_birth(r,84,False) for r in records),
+        "Error197": sum(_before_birth(r,87) for r in records),
+        "Error198": sum(_before_birth(r,91) for r in records),
+        "Error199": sum(_before_birth(r,93) for r in records),
+        "Error200": sum(_before_birth(r,96) for r in records),
+        "Error201": sum(_before_birth(r,99,True,"1900-01-01") for r in records),
+        "Error202": sum(_before_birth(r,100,True,"1900-01-01") for r in records),
+        "Error203": sum(_before_birth(r,103,False) for r in records),
+        "Error205": sum(_before_birth(r,106) for r in records),
+        "Error207": sum(_before_birth(r,110,False) for r in records),
+        "Error208": sum(_before_birth(r,111) for r in records),
+        "Error209": sum(_before_birth(r,112,False) for r in records),
         "Error653": sum(r[113] not in {"1", "2", "3", "4", "21"} for r in records if r[113] != ""),
         "Error655": sum(r[114] not in {"0", "4", "5", "6", "21"} for r in records if r[114] != ""),
         "Error656": sum(r[115] != "0" for r in records),
