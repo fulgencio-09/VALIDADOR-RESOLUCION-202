@@ -7,8 +7,8 @@ Fuente: `Lineamientos-anexo-tecnico-res-202-2021-v8.xlsx`, hoja `Lineamientos RP
 | Métrica | Cantidad |
 |---|---:|
 | Reglas/códigos oficiales en catálogo | 395 |
-| Reglas ejecutables en catálogos de validación | 176 |
-| Reglas aún pendientes de implementación | 219 |
+| Reglas ejecutables en catálogos de validación | 182 |
+| Reglas aún pendientes de implementación | 213 |
 | Errores oficiales | 377 |
 | Warnings oficiales | 18 |
 | Reglas ejecutables del rango Error020-Error096 | 33 |
@@ -16,6 +16,7 @@ Fuente: `Lineamientos-anexo-tecnico-res-202-2021-v8.xlsx`, hoja `Lineamientos RP
 | Reglas ejecutables del bloque fecha vs. nacimiento | 37 |
 | Reglas ejecutables adicionales Error220-Error244 | 9 |
 | Reglas ejecutables del bloque Error294-Error399 | 50 |
+| Reglas ejecutables del bloque Error535-Error540 | 6 |
 | Reglas ejecutables del bloque Error638-Error652 | 13 |
 
 ## Familias implementadas
@@ -64,6 +65,14 @@ Para soportar las reglas de comparación entre dos campos se añadieron al motor
 
 También se reutiliza `wildcard_allowed` para las reglas de comodines de fechas específicas del anexo.
 
+### Error535-Error540
+
+Se implementaron 6 reglas activas:
+
+`Error535`, `Error536`, `Error537`, `Error538`, `Error539`, `Error540`.
+
+Las condiciones fueron corroboradas con los lineamientos publicados disponibles y los códigos están activos en el catálogo v8 del proyecto.
+
 ### Error638-Error652
 
 Se implementaron 13 códigos activos del bloque:
@@ -79,6 +88,8 @@ Se implementaron 13 códigos activos del bloque:
 El archivo `440900022701_30092026.txt` contiene 431 registros tipo 2 y 119 campos por registro.
 
 El lote Error294-Error399 produjo 55 violaciones, todas de `Error305`; las otras 49 reglas del lote produjeron cero violaciones. El detalle está documentado en `docs/tests/440900022701_30092026-error294-399.md`.
+
+El lote Error535-Error540 produjo **2 violaciones**, ambas de `Error536`, sobre el mismo TXT real. Las otras cinco reglas produjeron cero violaciones.
 
 El lote Error638-Error652 produjo **0 violaciones en sus 13 reglas implementadas** sobre el mismo TXT real. La prueba utiliza la fecha de corte `2026-09-30` y conserva los comodines definidos por el anexo.
 
