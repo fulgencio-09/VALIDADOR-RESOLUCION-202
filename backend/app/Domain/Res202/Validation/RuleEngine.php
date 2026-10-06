@@ -11,16 +11,15 @@ final class RuleEngine
     public function validate(array $record, array $rules, array $context = []): array
     {
         $results = [];
+        $context = $this->enrichContext($record, $context);
 
         foreach ($rules as $rule) {
             if (($rule['active'] ?? true) !== true) {
                 continue;
             }
-
             $operation = (string) ($rule['operation'] ?? '');
             $variable = (int) ($rule['variable'] ?? -1);
             $value = $record[$variable] ?? null;
-
             $failed = match ($operation) {
                 'required' => $value === null || $value === '',
                 'in' => !$this->inAllowedValues($value, $rule['values'] ?? []),
@@ -34,9 +33,10 @@ final class RuleEngine
                 'length_range_by_value' => $this->lengthRangeByValue($record, $rule),
                 'length_exact' => $this->lengthExact($value, (int) ($rule['length'] ?? 0)),
                 'regex' => $this->regexFails($value, (string) ($rule['pattern'] ?? '')),
+                'forbidden_when' => $this->matchesCondition($record, $rule['when'] ?? [], $context),
+                'conditional' => $this->conditionalFails($record, $rule, $context),
                 default => false,
             };
-
             if ($failed) {
                 $results[] = [
                     'code' => (string) $rule['code'],
@@ -47,151 +47,154 @@ final class RuleEngine
                 ];
             }
         }
-
         return $results;
+    }
+
+    private function enrichContext(array $record, array $context): array
+    {
+        if (!isset($context['cutoff_date']) || !is_string($context['cutoff_date'])) {
+            return $context;
+        }
+        if (isset($context['age_months'], $context['age_years'], $context['age_days'])) {
+            return $context;
+        }
+        $birth = DateTimeImmutable::createFromFormat('!Y-m-d', (string) ($record[9] ?? ''));
+        $cutoff = DateTimeImmutable::createFromFormat('!Y-m-d', $context['cutoff_date']);
+        if ($birth === false || $cutoff === false || $birth > $cutoff || $birth < new DateTimeImmutable('1900-01-01')) {
+            return $context;
+        }
+        $diff = $birth->diff($cutoff);
+        $context['age_years'] = $diff->y;
+        $context['age_months'] = ($diff->y * 12) + $diff->m;
+        $context['age_days'] = $diff->days ?? 0;
+        return $context;
+    }
+
+    private function matchesCondition(array $record, array $condition, array $context): bool
+    {
+        if (isset($condition['all'])) {
+            foreach ($condition['all'] as $child) {
+                if (!$this->matchesCondition($record, $child, $context)) return false;
+            }
+            return true;
+        }
+        if (isset($condition['any'])) {
+            foreach ($condition['any'] as $child) {
+                if ($this->matchesCondition($record, $child, $context)) return true;
+            }
+            return false;
+        }
+        $actual = $this->conditionValue($record, $condition, $context);
+        $operator = (string) ($condition['op'] ?? 'eq');
+        $expected = $condition['value'] ?? null;
+        return match ($operator) {
+            'eq' => (string) $actual === (string) $expected,
+            'neq' => (string) $actual !== (string) $expected,
+            'in' => in_array((string) $actual, array_map('strval', $condition['values'] ?? []), true),
+            'not_in' => !in_array((string) $actual, array_map('strval', $condition['values'] ?? []), true),
+            'lt' => $this->compare($actual, $expected) < 0,
+            'lte' => $this->compare($actual, $expected) <= 0,
+            'gt' => $this->compare($actual, $expected) > 0,
+            'gte' => $this->compare($actual, $expected) >= 0,
+            default => false,
+        };
+    }
+
+    private function conditionValue(array $record, array $condition, array $context): mixed
+    {
+        if (array_key_exists('field', $condition)) return $record[(int) $condition['field']] ?? null;
+        if (array_key_exists('age_years', $condition)) return $context['age_years'] ?? null;
+        if (array_key_exists('age_months', $condition)) return $context['age_months'] ?? null;
+        if (array_key_exists('age_days', $condition)) return $context['age_days'] ?? null;
+        return null;
+    }
+
+    private function compare(mixed $actual, mixed $expected): int
+    {
+        if ($actual === null || $expected === null || $actual === '') return 0;
+        if (is_numeric($actual) && is_numeric($expected)) return (float) $actual <=> (float) $expected;
+        return (string) $actual <=> (string) $expected;
+    }
+
+    private function conditionalFails(array $record, array $rule, array $context): bool
+    {
+        return $this->matchesCondition($record, $rule['when'] ?? [], $context)
+            && !$this->matchesCondition($record, $rule['require'] ?? [], $context);
     }
 
     private function inAllowedValues(mixed $value, array $allowed): bool
     {
-        if ($value === null || $value === '') {
-            return true;
-        }
-
+        if ($value === null || $value === '') return true;
         return in_array((string) $value, array_map('strval', $allowed), true);
     }
 
     private function equalsWhen(array $record, array $rule): bool
     {
-        $whenVariable = (int) ($rule['when_variable'] ?? -1);
-        $whenValue = (string) ($rule['when_value'] ?? '');
-        $expected = (string) ($rule['expected'] ?? '');
-
-        if ((string) ($record[$whenVariable] ?? '') !== $whenValue) {
-            return false;
-        }
-
-        return (string) ($record[(int) $rule['variable']] ?? '') !== $expected;
+        if ((string) ($record[(int) ($rule['when_variable'] ?? -1)] ?? '') !== (string) ($rule['when_value'] ?? '')) return false;
+        return (string) ($record[(int) $rule['variable']] ?? '') !== (string) ($rule['expected'] ?? '');
     }
 
     private function equalsWhenAny(array $record, array $rule): bool
     {
-        $whenVariable = (int) ($rule['when_variable'] ?? -1);
-        $whenValues = array_filter(
-            explode('|', (string) ($rule['when_value'] ?? '')),
-            static fn (string $v): bool => $v !== ''
-        );
-        $expected = (string) ($rule['expected'] ?? '');
-        $actualCondition = (string) ($record[$whenVariable] ?? '');
-
-        if (!in_array($actualCondition, $whenValues, true)) {
-            return false;
-        }
-
-        return (string) ($record[(int) $rule['variable']] ?? '') !== $expected;
+        $whenValues = array_filter(explode('|', (string) ($rule['when_value'] ?? '')), static fn (string $v): bool => $v !== '');
+        if (!in_array((string) ($record[(int) ($rule['when_variable'] ?? -1)] ?? ''), $whenValues, true)) return false;
+        return (string) ($record[(int) $rule['variable']] ?? '') !== (string) ($rule['expected'] ?? '');
     }
 
     private function notEqualsWhen(array $record, array $rule): bool
     {
-        $whenVariable = (int) ($rule['when_variable'] ?? -1);
-        $whenValue = (string) ($rule['when_value'] ?? '');
-        $expected = (string) ($rule['expected'] ?? '');
-
-        if ((string) ($record[$whenVariable] ?? '') === $whenValue) {
-            return false;
-        }
-
-        return (string) ($record[(int) $rule['variable']] ?? '') === $expected;
+        if ((string) ($record[(int) ($rule['when_variable'] ?? -1)] ?? '') === (string) ($rule['when_value'] ?? '')) return false;
+        return (string) ($record[(int) $rule['variable']] ?? '') === (string) ($rule['expected'] ?? '');
     }
 
     private function dateNotBefore(mixed $value, mixed $date): bool
     {
-        if ($value === null || $value === '' || $date === null || $date === '') {
-            return false;
-        }
-
-        return (string) $value < (string) $date;
+        return $value !== null && $value !== '' && $date !== null && $date !== '' && (string) $value < (string) $date;
     }
 
     private function dateNotAfter(mixed $value, mixed $date): bool
     {
-        if ($value === null || $value === '' || $date === null || $date === '') {
-            return false;
-        }
-
-        return (string) $value > (string) $date;
+        return $value !== null && $value !== '' && $date !== null && $date !== '' && (string) $value > (string) $date;
     }
 
     private function dateBefore(mixed $value, mixed $date): bool
     {
-        if ($value === null || $value === '' || $date === null || $date === '') {
-            return false;
-        }
-
+        if ($value === null || $value === '' || $date === null || $date === '') return false;
         $actual = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $value);
         $minimum = DateTimeImmutable::createFromFormat('!Y-m-d', (string) $date);
-
-        if ($actual === false || $minimum === false) {
-            return false;
-        }
-
-        return $actual < $minimum;
+        return $actual !== false && $minimum !== false && $actual < $minimum;
     }
 
     private function lengthByValue(array $record, array $rule): bool
     {
         $selector = (string) ($record[(int) ($rule['selector_variable'] ?? -1)] ?? '');
         $value = (string) ($record[(int) ($rule['variable'] ?? -1)] ?? '');
-        $map = $rule['length_map'] ?? [];
-
-        if (!array_key_exists($selector, $map)) {
-            return false;
-        }
-
+        if (!array_key_exists($selector, $rule['length_map'] ?? [])) return false;
         $length = strlen($value);
-        foreach ($map[$selector] as $constraint) {
+        foreach ($rule['length_map'][$selector] as $constraint) {
             $min = $constraint['min'] ?? null;
             $max = $constraint['max'] ?? null;
-            if (($min === null || $length >= (int) $min) && ($max === null || $length <= (int) $max)) {
-                return false;
-            }
+            if (($min === null || $length >= (int) $min) && ($max === null || $length <= (int) $max)) return false;
         }
-
         return true;
     }
 
     private function lengthRangeByValue(array $record, array $rule): bool
     {
         $value = (string) ($record[(int) ($rule['variable'] ?? -1)] ?? '');
-        $allowed = array_map('strval', $rule['allowed_values'] ?? []);
-        if (in_array($value, $allowed, true)) {
-            return false;
-        }
-
-        $length = strlen($value);
-        $allowedLengths = array_map('intval', $rule['allowed_lengths'] ?? []);
-        if (!in_array($length, $allowedLengths, true)) {
-            return true;
-        }
-
+        if (in_array($value, array_map('strval', $rule['allowed_values'] ?? []), true)) return false;
+        if (!in_array(strlen($value), array_map('intval', $rule['allowed_lengths'] ?? []), true)) return true;
         $pattern = $rule['allowed_pattern'] ?? null;
         return $pattern !== null && preg_match((string) $pattern, $value) !== 1;
     }
 
     private function lengthExact(mixed $value, int $length): bool
     {
-        if ($value === null || $value === '') {
-            return false;
-        }
-
-        return strlen((string) $value) !== $length;
+        return $value !== null && $value !== '' && strlen((string) $value) !== $length;
     }
 
     private function regexFails(mixed $value, string $pattern): bool
     {
-        if ($value === null || $value === '' || $pattern === '') {
-            return false;
-        }
-
-        return preg_match($pattern, (string) $value) !== 1;
+        return $value !== null && $value !== '' && $pattern !== '' && preg_match($pattern, (string) $value) !== 1;
     }
 }
