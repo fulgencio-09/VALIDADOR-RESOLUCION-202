@@ -67,7 +67,9 @@ También se reutiliza `wildcard_allowed` para las reglas de comodines de fechas 
 
 El archivo `440900022701_30092026.txt` contiene 431 registros tipo 2 y 119 campos por registro.
 
-Los bloques anteriores ya fueron probados contra el TXT real. El nuevo lote Error294-Error399 queda incorporado al validador y cuenta con pruebas unitarias; la siguiente verificación de integración debe ejecutar el lote completo sobre el TXT real y documentar sus violaciones antes de declarar cerrada esta familia.
+La prueba de integración del lote completo produjo **55 violaciones**, todas de `Error305`. Las otras 49 reglas del lote produjeron cero violaciones en este archivo. El detalle y ejemplos de `Error305` quedaron documentados en `docs/tests/440900022701_30092026-error294-399.md`.
+
+El resultado no implica que `Error305` deba corregirse automáticamente: el validador debe presentar el hallazgo y dejar la corrección sujeta a revisión del dato fuente.
 
 ## Criterio de cobertura
 
