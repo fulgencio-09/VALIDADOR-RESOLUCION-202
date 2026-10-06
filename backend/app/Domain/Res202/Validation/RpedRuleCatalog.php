@@ -6,13 +6,7 @@ namespace App\Domain\Res202\Validation;
 
 final class RpedRuleCatalog
 {
-    /**
-     * Ejecutable solo cuando la operación está implementada y la regla fue
-     * contrastada contra el Lineamientos RPED v8. Las reglas que dependen de
-     * REPS o que presentan una ambigüedad textual se mantienen pendientes.
-     *
-     * @return array<int,array<string,mixed>>
-     */
+    /** @return array<int,array<string,mixed>> */
     public static function executable(): array
     {
         return [
@@ -27,10 +21,8 @@ final class RpedRuleCatalog
             self::forbidden('Error049','Si registra Fecha de atención parto o cesárea, el sexo debe ser F',['all'=>[['field'=>49,'op'=>'neq','value'=>'1845-01-01'],['field'=>10,'op'=>'neq','value'=>'F']]],49),
             self::forbidden('Error050','Si registra fecha de salida de atención de parto, el sexo debe ser F',['all'=>[['field'=>50,'op'=>'neq','value'=>'1845-01-01'],['field'=>10,'op'=>'neq','value'=>'F']]],50),
             self::forbidden('Error051','La atención de lactancia no aplica a personas de sexo M con edad mayor o igual a 7 meses',['all'=>[['field'=>51,'op'=>'neq','value'=>'1845-01-01'],['field'=>10,'op'=>'eq','value'=>'M'],['age_months'=>true,'op'=>'gte','value'=>7]]],51),
-
             self::forbidden('Error063','Verifique la edad de la persona con suministro de fortificación casera',['all'=>[['field'=>70,'op'=>'in','values'=>['1','16','17','18','20','21']],['any'=>[['age_months'=>true,'op'=>'lt','value'=>6],['age_months'=>true,'op'=>'gt','value'=>27]]]]],70),
             self::forbidden('Error064','Verifique la edad de la persona con suministro de vitamina A',['all'=>[['field'=>71,'op'=>'in','values'=>['1','16','17','18','20','21']],['any'=>[['age_months'=>true,'op'=>'lt','value'=>24],['age_months'=>true,'op'=>'gt','value'=>63]]]]],71),
-
             self::forbidden('Error069','Si registra tamizaje de cáncer de cuello uterino, la edad debe ser >=10 años y el sexo F',['all'=>[['field'=>86,'op'=>'neq','value'=>'0'],['any'=>[['field'=>10,'op'=>'neq','value'=>'F'],['age_months'=>true,'op'=>'lt','value'=>120]]]]],86),
             self::forbidden('Error070','Si registra fecha de tamizaje de cáncer de cuello uterino, la edad debe ser >=10 años',['all'=>[['field'=>87,'op'=>'neq','value'=>'1845-01-01'],['age_months'=>true,'op'=>'lt','value'=>120]]],87),
             self::forbidden('Error071','Si registra fecha de tamizaje de cáncer de cuello uterino, el sexo debe ser F',['all'=>[['field'=>87,'op'=>'neq','value'=>'1845-01-01'],['field'=>10,'op'=>'neq','value'=>'F']]],87),
@@ -53,7 +45,6 @@ final class RpedRuleCatalog
             self::forbidden('Error095','Si registra fecha de resultado de biopsia de mama válida, el sexo debe ser F',['all'=>[['field'=>100,'op'=>'gt','value'=>'1900-01-01'],['field'=>10,'op'=>'neq','value'=>'F']]],100),
             self::forbidden('Error096','Si registra resultado de biopsia de mama, el sexo debe ser F',['all'=>[['field'=>101,'op'=>'in','values'=>['1','2','3','4','5','21']],['field'=>10,'op'=>'neq','value'=>'F']]],101),
 
-            // Fechas posteriores a la fecha de corte del registro de control.
             self::afterCutoff('Error120',9,'Fecha Nacimiento es mayor a la fecha de corte'),
             self::afterCutoff('Error121',29,'Fecha peso es mayor a la fecha de corte'),
             self::afterCutoff('Error122',31,'Fecha talla es mayor a la fecha de corte'),
@@ -81,14 +72,25 @@ final class RpedRuleCatalog
             self::afterCutoff('Error158',111,'Fecha de toma de HDL es mayor a la fecha de corte'),
             self::afterCutoff('Error159',112,'Fecha de toma de baciloscopia de diagnóstico es mayor a la fecha de corte'),
 
+            self::beforeBirth('Error171',29,'Fecha peso es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error172',31,'Fecha talla es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error173',49,'Fecha atención parto o cesárea es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error174',50,'Fecha salida del parto o cesárea es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error175',51,'Fecha atención en salud para la promoción y apoyo de la lactancia materna es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error176',52,'Fecha de consulta de valoración integral es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error177',53,'La fecha de la Atención en salud para la asesoría en anticoncepción es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error178',55,'Fecha suministro método anticonceptivo es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error179',56,'Fecha de primera consulta prenatal es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error180',58,'Fecha de último control prenatal de seguimiento es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error181',62,'Fecha de valoración agudeza visual es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error182',63,'Fecha de tamizaje VALE es menor a la fecha de nacimiento'),
+
             ['code'=>'Error653','severity'=>'ERROR','operation'=>'in','variable'=>113,'values'=>['1','2','3','4','21'],'message'=>'Error en valores permitidos - Resultado de baciloscopia diagnóstico'],
             ['code'=>'Error655','severity'=>'ERROR','operation'=>'in','variable'=>114,'values'=>['0','4','5','6','21'],'message'=>'Error en valores permitidos - Clasificación del riesgo cardiovascular'],
             ['code'=>'Error656','severity'=>'ERROR','operation'=>'in','variable'=>115,'values'=>['0'],'message'=>'Error en valores permitidos - Tratamiento para sífilis gestacional'],
             ['code'=>'Error657','severity'=>'ERROR','operation'=>'in','variable'=>116,'values'=>['0'],'message'=>'Error en valores permitidos - Tratamiento para sífilis congénita'],
             ['code'=>'Error665','severity'=>'ERROR','operation'=>'in','variable'=>117,'values'=>['0','4','5','6','21'],'message'=>'Error en valores permitidos - Clasificación de riesgo metabólico'],
-            ['code'=>'Error676','severity'=>'ERROR','operation'=>'length_by_value','variable'=>4,'selector_variable'=>3,'length_map'=>[
-                'CC'=>[['max'=>10]],'TI'=>[['max'=>11]],'CE'=>[['min'=>3,'max'=>7]],'CD'=>[['max'=>11]],'PA'=>[['min'=>3,'max'=>16]],'SC'=>[['max'=>9]],'PE'=>[['min'=>3,'max'=>15]],
-            ],'message'=>'La longitud del número de identificación no corresponde con el tipo de identificación'],
+            ['code'=>'Error676','severity'=>'ERROR','operation'=>'length_by_value','variable'=>4,'selector_variable'=>3,'length_map'=>['CC'=>[['max'=>10]],'TI'=>[['max'=>11]],'CE'=>[['min'=>3,'max'=>7]],'CD'=>[['max'=>11]],'PA'=>[['min'=>3,'max'=>16]],'SC'=>[['max'=>9]],'PE'=>[['min'=>3,'max'=>15]]],'message'=>'La longitud del número de identificación no corresponde con el tipo de identificación'],
             ['code'=>'Error677','severity'=>'ERROR','operation'=>'date_before','variable'=>9,'date'=>'1900-01-01','message'=>'No se permite el registro de estos comodines en Fecha Nacimiento'],
             ['code'=>'Error678','severity'=>'ERROR','operation'=>'length_range_by_value','variable'=>102,'allowed_values'=>['0','21'],'allowed_lengths'=>[12],'allowed_pattern'=>'/^\\d{12}$/','message'=>'Solo se permite el registro de los valores 0, 21 o un valor de 12 dígitos de longitud'],
         ];
@@ -97,6 +99,11 @@ final class RpedRuleCatalog
     private static function afterCutoff(string $code, int $variable, string $message): array
     {
         return ['code'=>$code,'severity'=>'ERROR','operation'=>'date_after_cutoff','variable'=>$variable,'message'=>$message];
+    }
+
+    private static function beforeBirth(string $code, int $variable, string $message): array
+    {
+        return ['code'=>$code,'severity'=>'ERROR','operation'=>'date_before_birth','variable'=>$variable,'birth_variable'=>9,'ignore_values'=>['1800-01-01','1805-01-01','1810-01-01','1825-01-01','1830-01-01','1835-01-01','1845-01-01'],'message'=>$message];
     }
 
     private static function forbidden(string $code, string $message, array $when, int $variable): array
@@ -115,7 +122,7 @@ final class RpedRuleCatalog
     public static function pendingSourceAmbiguities(): array
     {
         return [
-            ['code'=>'Error079','reason'=>'La validación textual indica variable 90, mientras la descripción y variables relacionadas indican variable 91. Se mantiene pendiente hasta resolver la discrepancia de fuente.'],
+            ['code'=>'Error079','reason'=>'La fuente presenta discrepancia: la validación menciona la variable 90, mientras la descripción y variables relacionadas apuntan a la variable 91. No se corrige silenciosamente.'],
         ];
     }
 }
