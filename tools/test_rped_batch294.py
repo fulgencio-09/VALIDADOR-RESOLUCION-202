@@ -50,7 +50,7 @@ def build_rules():
         "Error354": lambda r: r[89] in {"1", "2", "3"} and (r[88] < "1" or r[88] > "18"),
         "Error355": lambda r: r[89] in {"1", "2", "3", "4"} and r[90] in {"0", "999"},
         "Error359": lambda r: r[94] in {"1", "3", "4", "5", "6"} and r[93] in {"1845-01-01", "1800-01-01"},
-        "Error361": lambda r: r[96] > "1900-01-01" and r[97] not in {"1", "2", "3", "4", "5', '6', '7'},
+        "Error361": lambda r: r[96] > "1900-01-01" and r[97] not in {"1", "2", "3", "4", "5", "6", "7"},
         "Error362": lambda r: r[10] == "F" and r[96] == "1845-01-01" and age(r) >= 600,
         "Error364": lambda r: age(r) < 420 and r[97] != "0",
         "Error367": lambda r: (r[100] == "1800-01-01" or r[100] > "1900-01-01") and r[101] == "0",
