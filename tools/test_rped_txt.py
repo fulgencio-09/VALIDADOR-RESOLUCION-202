@@ -1,11 +1,21 @@
-"""Prueba estructural y reglas RPED seleccionadas sobre un TXT real."""
+"""Prueba estructural y reglas RPED Error020-Error096 sobre un TXT real."""
 from __future__ import annotations
 import re
 import sys
+from datetime import date
 from pathlib import Path
 
 EXPECTED_RECORDS = 431
 EXPECTED_FIELDS = 119
+CUTOFF_DATE = date(2026, 9, 30)
+
+
+def age_months(value: str) -> int:
+    birth = date.fromisoformat(value)
+    months = (CUTOFF_DATE.year - birth.year) * 12 + CUTOFF_DATE.month - birth.month
+    if CUTOFF_DATE.day < birth.day:
+        months -= 1
+    return months
 
 
 def _error676(record: list[str]) -> bool:
@@ -31,8 +41,37 @@ def check(path: Path) -> dict[str, int]:
     violations = {
         "Error020": sum(r[9] == "" for r in records),
         "Error030": sum(r[14] in {"1", "2", "21"} and r[10] != "F" for r in records),
+        "Error037": sum(r[22] in {"4", "5", "21"} and r[10] != "M" for r in records),
+        "Error038": sum(age_months(r[9]) < 480 and r[10] == "M" and (r[22] != "0" or r[64] != "1845-01-01") for r in records),
         "Error041": sum(r[30] == "999" and r[29] != "1800-01-01" for r in records),
         "Error043": sum(r[32] == "999" and r[31] != "1800-01-01" for r in records),
+        "Error047": sum(r[47] != "0" and r[10] != "F" for r in records),
+        "Error049": sum(r[49] != "1845-01-01" and r[10] != "F" for r in records),
+        "Error050": sum(r[50] != "1845-01-01" and r[10] != "F" for r in records),
+        "Error051": sum(r[51] != "1845-01-01" and r[10] == "M" and age_months(r[9]) >= 7 for r in records),
+        "Error063": sum(r[70] in {"1", "16", "17", "18", "20", "21"} and (age_months(r[9]) < 6 or age_months(r[9]) > 27) for r in records),
+        "Error064": sum(r[71] in {"1", "16", "17", "18", "20", "21"} and (age_months(r[9]) < 24 or age_months(r[9]) > 63) for r in records),
+        "Error069": sum(r[86] != "0" and (r[10] != "F" or age_months(r[9]) < 120) for r in records),
+        "Error070": sum(r[87] != "1845-01-01" and age_months(r[9]) < 120 for r in records),
+        "Error071": sum(r[87] != "1845-01-01" and r[10] != "F" for r in records),
+        "Error072": sum(r[88] != "0" and age_months(r[9]) < 120 for r in records),
+        "Error073": sum(r[88] != "0" and r[10] != "F" for r in records),
+        "Error074": sum(r[89] in {"1", "2", "3", "4", "999"} and age_months(r[9]) < 120 for r in records),
+        "Error075": sum(r[89] != "0" and r[10] != "F" for r in records),
+        "Error076": sum(r[90] != "0" and age_months(r[9]) <= 120 for r in records),
+        "Error077": sum(r[90] != "0" and r[10] != "F" for r in records),
+        "Error078": sum(r[91] != "1845-01-01" and age_months(r[9]) < 120 for r in records),
+        "Error082": sum(r[93] != "1845-01-01" and age_months(r[9]) <= 120 for r in records),
+        "Error083": sum(r[93] != "1845-01-01" and r[10] != "F" for r in records),
+        "Error084": sum(r[94] in {"1", "3", "4", "5", "6", "21"} and age_months(r[9]) <= 120 for r in records),
+        "Error085": sum(r[94] != "0" and r[10] != "F" for r in records),
+        "Error088": sum(r[96] != "1845-01-01" and age_months(r[9]) < 420 for r in records),
+        "Error089": sum(r[96] != "1845-01-01" and r[10] != "F" for r in records),
+        "Error090": sum(r[97] != "0" and age_months(r[9]) < 420 for r in records),
+        "Error091": sum(r[97] != "0" and r[10] != "F" for r in records),
+        "Error094": sum(r[99] > "1900-01-01" and r[10] != "F" for r in records),
+        "Error095": sum(r[100] > "1900-01-01" and r[10] != "F" for r in records),
+        "Error096": sum(r[101] in {"1", "2", "3", "4", "5", "21"} and r[10] != "F" for r in records),
         "Error653": sum(r[113] not in {"1", "2", "3", "4", "21"} for r in records if r[113] != ""),
         "Error655": sum(r[114] not in {"0", "4", "5", "6", "21"} for r in records if r[114] != ""),
         "Error656": sum(r[115] != "0" for r in records),
