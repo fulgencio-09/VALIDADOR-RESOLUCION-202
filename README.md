@@ -19,7 +19,7 @@ Construir un validador web basado en la estructura oficial del anexo técnico, c
 - **Frontend:** Vue 3 + Vite.
 - **Backend:** Laravel 12 / API REST.
 - **Persistencia:** MySQL.
-- **Procesamiento:** colas con Redis para archivos grandes.
+- **Procesamiento:** Laravel Queue + Redis para archivos grandes.
 - **Reglas:** motor de validación parametrizado y versionado.
 
 Flujo actual:
@@ -31,20 +31,37 @@ POST /api/validations
   ↓
 Laravel 12
   ↓
-Validación estructural + motor RPED
-  ↓
-Persistencia en validation_runs
-  ↓
-Resultados JSON
-  ↓
-Dashboard + historial + reporte CSV
-  ↓
-Corrección explícita
-  ↓
-Revalidación
-  ↓
-TXT corregido
+¿TXT > 5 MB?
+  ├── No → Validación inmediata
+  └── Sí → Queue res202-validation → Worker
+                         ↓
+              validation_runs: QUEUED → PROCESSING → COMPLETED/FAILED
+                         ↓
+                Frontend consulta estado
+                         ↓
+             Dashboard + historial + CSV
+                         ↓
+                  Corrección explícita
+                         ↓
+                     Revalidación
+                         ↓
+                   TXT corregido
 ```
+
+## Procesamiento en segundo plano
+
+Los archivos superiores a 5 MB se almacenan primero en el almacenamiento privado y se crean con estado `QUEUED`. Luego se despacha `ValidateRpedFile` en la cola `res202-validation`.
+
+El job cambia el estado a `PROCESSING`, ejecuta el mismo motor RPED y termina en `COMPLETED` o `FAILED`. El frontend consulta el estado automáticamente cada 2 segundos mientras el procesamiento está activo.
+
+Para producción con Redis se debe configurar Laravel con `QUEUE_CONNECTION=redis` y ejecutar un worker para la cola:
+
+```bash
+cd backend
+php artisan queue:work redis --queue=res202-validation --tries=2 --timeout=300
+```
+
+El umbral actual de 5 MB permite mantener respuesta inmediata para archivos pequeños y evita bloquear la petición HTTP con archivos grandes.
 
 ## Corrección segura
 
@@ -74,9 +91,8 @@ El catálogo reproducible se genera con `tools/import_res202_catalog.py` a parti
 | GET | `/api/health` | Estado de la API |
 | POST | `/api/validations` | Cargar y validar TXT RPED |
 | GET | `/api/validations` | Historial de las últimas 50 validaciones |
-| GET | `/api/validations/{id}` | Detalle de una validación |
+| GET | `/api/validations/{id}` | Detalle y estado de una validación |
 | GET | `/api/corrections/catalog` | Correcciones habilitadas |
-| GET | `/api/validations/{id}/corrections` | Auditoría de correcciones |
 | POST | `/api/validations/{id}/correct` | Generar y revalidar TXT corregido |
 | GET | `/api/validations/{id}/corrected-download` | Descargar archivo corregido |
 
@@ -86,18 +102,9 @@ La carga acepta TXT de hasta 50 MB. El resultado incluye registros, reglas ejecu
 
 La tabla `validation_runs` conserva el historial de validaciones y la ubicación privada del archivo fuente para permitir correcciones trazables.
 
-La tabla `correction_history` registra cada modificación con:
+La tabla `correction_history` registra cada modificación con validación de origen, código, línea, variable, acción, valor anterior, valor nuevo y fecha.
 
-- validación de origen;
-- código de error;
-- línea;
-- variable;
-- acción aplicada;
-- valor anterior;
-- valor nuevo;
-- fecha.
-
-Para crear las tablas en el entorno Laravel:
+Migraciones principales:
 
 ```bash
 cd backend
@@ -105,6 +112,8 @@ composer install
 php artisan migrate
 php artisan serve
 ```
+
+Para producción, configurar Redis y el worker de Laravel Queue antes de procesar archivos grandes.
 
 ## Frontend
 
@@ -131,6 +140,7 @@ Se incorporaron:
 - `database/catalog/validation_rules_rped.csv`: catálogo oficial normalizado por código.
 - `RpedCorrectionCatalog.php`: catálogo de correcciones explícitas.
 - `RpedCorrectionService.php`: aplica transformaciones y registra los cambios.
+- `ValidateRpedFile.php`: job de validación asíncrona para archivos grandes.
 
 La cobertura de reglas seguirá ampliándose desde el Excel oficial. La aplicación no debe considerarse terminada hasta completar y probar la cobertura requerida.
 
@@ -162,6 +172,6 @@ La primera capa contempla:
 
 **Fase 1 funcional:** carga TXT, validación estructural, motor RPED, resultados, reporte CSV e historial persistente implementados.
 
-**Fase 2 iniciada:** corrección segura y trazable, auditoría de cambios, generación del TXT corregido y revalidación automática implementadas.
+**Fase 2:** corrección segura y trazable, auditoría de cambios, generación del TXT corregido, revalidación automática y procesamiento asíncrono de archivos grandes implementados.
 
-**Siguiente bloque:** procesamiento de archivos grandes con Redis/colas, descarga robusta de resultados y ampliación de cobertura de reglas pendientes.
+**Siguiente bloque:** robustecer la gestión de resultados/descargas y continuar ampliando la cobertura de reglas pendientes antes de pasar a autenticación y despliegue institucional.
