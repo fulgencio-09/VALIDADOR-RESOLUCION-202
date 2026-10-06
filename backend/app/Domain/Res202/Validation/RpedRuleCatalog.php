@@ -84,6 +84,30 @@ final class RpedRuleCatalog
             self::beforeBirth('Error180',58,'Fecha de último control prenatal de seguimiento es menor a la fecha de nacimiento'),
             self::beforeBirth('Error181',62,'Fecha de valoración agudeza visual es menor a la fecha de nacimiento'),
             self::beforeBirth('Error182',63,'Fecha de tamizaje VALE es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error183',64,'Fecha del tacto rectal es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error184',65,'Fecha tamización con oximetría pre y post ductal es menor a la fecha de nacimiento',false),
+            self::beforeBirth('Error185',66,'Fecha de realización colonoscopia tamizaje es menor o igual a la fecha de nacimiento'),
+            self::beforeBirth('Error186',67,'Fecha de la prueba de sangre oculta en materia fecal (tamizaje Ca de colon) es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error188',69,'Fecha de tamizaje auditivo neonatal es menor a la fecha de nacimiento',false),
+            self::beforeBirth('Error189',72,'Fecha de toma LDL es menor o igual a la fecha de nacimiento'),
+            self::beforeBirth('Error190',73,'Fecha de toma PSA es menor o igual a la fecha de nacimiento'),
+            self::beforeBirth('Error191',75,'Fecha de tamizaje visual neonatal es menor a la fecha de nacimiento',false),
+            self::beforeBirth('Error192',76,'Fecha atención en salud bucal por profesional en odontología es menor o igual a la fecha de nacimiento'),
+            self::beforeBirth('Error193',78,'Fecha antígeno de superficie hepatitis B es menor a la fecha de nacimiento',false),
+            self::beforeBirth('Error194',80,'Fecha de toma de la prueba de tamizaje para sífilis es menor a la fecha de nacimiento',false),
+            self::beforeBirth('Error195',82,'Fecha de toma de prueba para VIH es menor a la fecha de nacimiento',false),
+            self::beforeBirth('Error196',84,'Fecha de TSH neonatal es menor a la fecha de nacimiento',false),
+            self::beforeBirth('Error197',87,'Fecha de tamizaje cáncer de cuello uterino es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error198',91,'Fecha colposcopia es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error199',93,'Fecha biopsia cervicouterina es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error200',96,'Fecha de mamografía es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error201',99,'Fecha de toma biopsia mama es menor a la fecha de nacimiento',true,'1900-01-01'),
+            self::beforeBirth('Error202',100,'Fecha resultado de biopsia de mama es menor a la fecha de nacimiento',true,'1900-01-01'),
+            self::beforeBirth('Error203',103,'Fecha de toma hemoglobina es menor a la fecha de nacimiento',false),
+            self::beforeBirth('Error205',106,'Fecha creatinina es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error207',110,'Fecha de toma de tamizaje hepatitis C es menor a la fecha de nacimiento',false),
+            self::beforeBirth('Error208',111,'Fecha de toma de HDL es menor a la fecha de nacimiento'),
+            self::beforeBirth('Error209',112,'Fecha de toma de baciloscopia de diagnóstico es menor a la fecha de nacimiento',false),
 
             ['code'=>'Error653','severity'=>'ERROR','operation'=>'in','variable'=>113,'values'=>['1','2','3','4','21'],'message'=>'Error en valores permitidos - Resultado de baciloscopia diagnóstico'],
             ['code'=>'Error655','severity'=>'ERROR','operation'=>'in','variable'=>114,'values'=>['0','4','5','6','21'],'message'=>'Error en valores permitidos - Clasificación del riesgo cardiovascular'],
@@ -101,9 +125,9 @@ final class RpedRuleCatalog
         return ['code'=>$code,'severity'=>'ERROR','operation'=>'date_after_cutoff','variable'=>$variable,'message'=>$message];
     }
 
-    private static function beforeBirth(string $code, int $variable, string $message): array
+    private static function beforeBirth(string $code, int $variable, string $message, bool $inclusive = true, ?string $minValidDate = null): array
     {
-        return ['code'=>$code,'severity'=>'ERROR','operation'=>'date_before_birth','variable'=>$variable,'birth_variable'=>9,'ignore_values'=>['1800-01-01','1805-01-01','1810-01-01','1825-01-01','1830-01-01','1835-01-01','1845-01-01'],'message'=>$message];
+        return ['code'=>$code,'severity'=>'ERROR','operation'=>'date_before_birth','variable'=>$variable,'birth_variable'=>9,'inclusive'=>$inclusive,'min_valid_date'=>$minValidDate,'ignore_values'=>['1800-01-01','1805-01-01','1810-01-01','1825-01-01','1830-01-01','1835-01-01','1845-01-01'],'message'=>$message];
     }
 
     private static function forbidden(string $code, string $message, array $when, int $variable): array
