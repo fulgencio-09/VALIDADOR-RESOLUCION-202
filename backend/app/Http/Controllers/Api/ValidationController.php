@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Domain\Res202\Validation\RpedCatalogLoader;
 use App\Domain\Res202\Validation\RpedRuleCatalog;
 use App\Domain\Res202\Validation\RpedValidator;
+use App\Jobs\ValidateRpedFile;
 use App\Models\ValidationRun;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,7 @@ final class ValidationController
 
     public function index(): JsonResponse
     {
-        $runs = ValidationRun::query()->latest('validated_at')->limit(50)->get([
+        $runs = ValidationRun::query()->latest('validated_at')->latest('created_at')->limit(50)->get([
             'id','filename','file_hash','size_bytes','annex','status','records','rules_loaded',
             'error_count','warning_count','result_count','validated_at','created_at',
         ]);
@@ -50,25 +51,41 @@ final class ValidationController
             if ($content === false) throw new \RuntimeException('No fue posible leer el archivo cargado.');
             $variables = RpedCatalogLoader::variables(base_path('../database/catalog/variables_rped.csv'));
             if (count($variables) !== 119) throw new \RuntimeException('El catálogo RPED no contiene las 119 variables esperadas.');
+
+            $filename = basename($uploaded->getClientOriginalName());
+            $safeName = preg_replace('/[^A-Za-z0-9._-]/','_',$filename) ?: 'archivo.txt';
+            $hash = hash('sha256',$content);
+            $size = strlen($content);
+            $sourcePath = 'validation-sources/'.now()->format('Y/m/d').'/'.uniqid('res202_',true).'_'.$safeName;
+            Storage::disk('local')->put($sourcePath,$content);
+
+            if ($size > 5 * 1024 * 1024) {
+                $run = ValidationRun::create([
+                    'filename'=>$filename,'file_hash'=>$hash,'source_path'=>$sourcePath,'size_bytes'=>$size,
+                    'annex'=>'RPED','status'=>'QUEUED','validated_at'=>null,
+                ]);
+                ValidateRpedFile::dispatch($run->id)->onQueue('res202-validation');
+                return response()->json([
+                    'id'=>$run->id,'valid'=>null,'queued'=>true,'status'=>'QUEUED','filename'=>$filename,
+                    'size_bytes'=>$size,'file_hash'=>$hash,'records'=>0,'rules_loaded'=>count(RpedRuleCatalog::executable()),
+                    'error_count'=>0,'warning_count'=>0,'result_count'=>0,'results'=>[],
+                ],202);
+            }
+
             $result = $this->validator->validate($content,$variables,RpedRuleCatalog::executable());
             $errorCount = count(array_filter($result['results'],static fn(array $item):bool=>strtoupper((string)($item['severity']??'ERROR'))==='ERROR'));
             $warningCount = count(array_filter($result['results'],static fn(array $item):bool=>strtoupper((string)($item['severity']??''))==='WARNING'));
             $rulesLoaded = count(RpedRuleCatalog::executable());
-            $filename = basename($uploaded->getClientOriginalName());
-            $safeName = preg_replace('/[^A-Za-z0-9._-]/','_', $filename) ?: 'archivo.txt';
-            $hash = hash('sha256',$content);
-            $sourcePath = 'validation-sources/'.now()->format('Y/m/d').'/'.uniqid('res202_',true).'_'.$safeName;
-            Storage::disk('local')->put($sourcePath,$content);
             $run = ValidationRun::create([
-                'filename'=>$filename,'file_hash'=>$hash,'source_path'=>$sourcePath,'size_bytes'=>strlen($content),
+                'filename'=>$filename,'file_hash'=>$hash,'source_path'=>$sourcePath,'size_bytes'=>$size,
                 'annex'=>'RPED','status'=>'COMPLETED','records'=>$result['records'],'rules_loaded'=>$rulesLoaded,
                 'error_count'=>$errorCount,'warning_count'=>$warningCount,'result_count'=>count($result['results']),
                 'results'=>$result['results'],'validated_at'=>now(),
             ]);
             return response()->json([
-                'id'=>$run->id,'valid'=>$errorCount===0,'filename'=>$filename,'size_bytes'=>strlen($content),'file_hash'=>$hash,
-                'records'=>$result['records'],'rules_loaded'=>$rulesLoaded,'error_count'=>$errorCount,'warning_count'=>$warningCount,
-                'result_count'=>count($result['results']),'results'=>$result['results'],
+                'id'=>$run->id,'valid'=>$errorCount===0,'queued'=>false,'status'=>'COMPLETED','filename'=>$filename,
+                'size_bytes'=>$size,'file_hash'=>$hash,'records'=>$result['records'],'rules_loaded'=>$rulesLoaded,
+                'error_count'=>$errorCount,'warning_count'=>$warningCount,'result_count'=>count($result['results']),'results'=>$result['results'],
             ]);
         } catch (Throwable $exception) {
             report($exception);
