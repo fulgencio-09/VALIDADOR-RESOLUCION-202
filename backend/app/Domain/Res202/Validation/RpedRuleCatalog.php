@@ -41,19 +41,45 @@ final class RpedRuleCatalog
             self::forbidden('Error076','Si registra IPS de tamizaje de cáncer de cuello uterino, la edad debe ser mayor a 10 años',['all'=>[['field'=>90,'op'=>'neq','value'=>'0'],['age_months'=>true,'op'=>'lte','value'=>120]]],90),
             self::forbidden('Error077','Si registra IPS de tamizaje de cáncer de cuello uterino, el sexo debe ser F',['all'=>[['field'=>90,'op'=>'neq','value'=>'0'],['field'=>10,'op'=>'neq','value'=>'F']]],90),
             self::forbidden('Error078','Si registra fecha de colposcopia, la edad debe ser >=10 años',['all'=>[['field'=>91,'op'=>'neq','value'=>'1845-01-01'],['age_months'=>true,'op'=>'lt','value'=>120]]],91),
-
             self::forbidden('Error082','Si registra fecha de biopsia cervicouterina, la edad debe ser mayor a 10 años',['all'=>[['field'=>93,'op'=>'neq','value'=>'1845-01-01'],['age_months'=>true,'op'=>'lte','value'=>120]]],93),
             self::forbidden('Error083','Si registra fecha de biopsia cervicouterina, el sexo debe ser F',['all'=>[['field'=>93,'op'=>'neq','value'=>'1845-01-01'],['field'=>10,'op'=>'neq','value'=>'F']]],93),
             self::forbidden('Error084','Si registra resultado de biopsia cervicouterina, la edad debe ser mayor a 10 años',['all'=>[['field'=>94,'op'=>'in','values'=>['1','3','4','5','6','21']],['age_months'=>true,'op'=>'lte','value'=>120]]],94),
             self::forbidden('Error085','Si registra resultado de biopsia cervical, el sexo debe ser F',['all'=>[['field'=>94,'op'=>'neq','value'=>'0'],['field'=>10,'op'=>'neq','value'=>'F']]],94),
-
-            self::forbidden('Error088','Registre no aplica en Fecha de mamografía si la edad es menor a 35 años',['all'=>[['field'=>96,'op'=>'neq','value'=>'1845-01-01'],['age_months'=>true,'op'=>'lt','value'=>420]]],96),
+            self::forbidden('Error088','Registre no aplica en Fecha de mamografía si la edad es menor de 35 años',['all'=>[['field'=>96,'op'=>'neq','value'=>'1845-01-01'],['age_months'=>true,'op'=>'lt','value'=>420]]],96),
             self::forbidden('Error089','Si registra fecha de mamografía, el sexo debe ser F',['all'=>[['field'=>96,'op'=>'neq','value'=>'1845-01-01'],['field'=>10,'op'=>'neq','value'=>'F']]],96),
             self::forbidden('Error090','Si registra resultado de mamografía, la edad debe ser >=35 años',['all'=>[['field'=>97,'op'=>'neq','value'=>'0'],['age_months'=>true,'op'=>'lt','value'=>420]]],97),
             self::forbidden('Error091','Si registra resultado de mamografía, el sexo debe ser F',['all'=>[['field'=>97,'op'=>'neq','value'=>'0'],['field'=>10,'op'=>'neq','value'=>'F']]],97),
             self::forbidden('Error094','Si registra fecha de toma de biopsia de mama válida, el sexo debe ser F',['all'=>[['field'=>99,'op'=>'gt','value'=>'1900-01-01'],['field'=>10,'op'=>'neq','value'=>'F']]],99),
             self::forbidden('Error095','Si registra fecha de resultado de biopsia de mama válida, el sexo debe ser F',['all'=>[['field'=>100,'op'=>'gt','value'=>'1900-01-01'],['field'=>10,'op'=>'neq','value'=>'F']]],100),
             self::forbidden('Error096','Si registra resultado de biopsia de mama, el sexo debe ser F',['all'=>[['field'=>101,'op'=>'in','values'=>['1','2','3','4','5','21']],['field'=>10,'op'=>'neq','value'=>'F']]],101),
+
+            // Fechas posteriores a la fecha de corte del registro de control.
+            self::afterCutoff('Error120',9,'Fecha Nacimiento es mayor a la fecha de corte'),
+            self::afterCutoff('Error121',29,'Fecha peso es mayor a la fecha de corte'),
+            self::afterCutoff('Error122',31,'Fecha talla es mayor a la fecha de corte'),
+            self::afterCutoff('Error123',49,'Fecha atención parto o cesárea es mayor a la fecha de corte'),
+            self::afterCutoff('Error124',50,'Fecha salida del parto o cesárea es mayor a la fecha de corte'),
+            self::afterCutoff('Error125',51,'Fecha atención en salud para la promoción y apoyo de la lactancia materna es mayor a la fecha de corte'),
+            self::afterCutoff('Error126',52,'Fecha de consulta de valoración integral es mayor a la fecha de corte'),
+            self::afterCutoff('Error127',53,'La fecha de la Atención en salud para la asesoría en anticoncepción es mayor a la fecha de corte'),
+            self::afterCutoff('Error128',55,'Fecha suministro método anticonceptivo es mayor a la fecha de corte del reporte'),
+            self::afterCutoff('Error129',56,'Fecha de primera consulta prenatal es mayor a la fecha de corte'),
+            self::afterCutoff('Error130',58,'Fecha de último control prenatal de seguimiento es mayor a la fecha de corte'),
+            self::afterCutoff('Error131',62,'Fecha de valoración agudeza visual es mayor a la fecha de corte'),
+            self::afterCutoff('Error139',72,'Fecha de toma LDL es mayor a la fecha de corte'),
+            self::afterCutoff('Error144',80,'Fecha de toma de prueba/actividad asociada a variable 80 es mayor a la fecha de corte'),
+            self::afterCutoff('Error145',82,'Fecha de la variable 82 es mayor a la fecha de corte'),
+            self::afterCutoff('Error146',84,'Fecha de TSH neonatal es mayor a la fecha de corte'),
+            self::afterCutoff('Error147',87,'Fecha de tamizaje cáncer de cuello uterino es mayor a la fecha de corte'),
+            self::afterCutoff('Error148',91,'Fecha colposcopia es mayor a la fecha de corte'),
+            self::afterCutoff('Error149',93,'Fecha biopsia cervicouterina es mayor a la fecha de corte'),
+            self::afterCutoff('Error150',96,'Fecha de mamografía es mayor a la fecha de corte'),
+            self::afterCutoff('Error151',99,'Fecha de toma biopsia de mama es mayor a la fecha de corte'),
+            self::afterCutoff('Error152',100,'Fecha resultado de biopsia de mama es mayor a la fecha de corte'),
+            self::afterCutoff('Error155',106,'Fecha creatinina es mayor a la fecha de corte'),
+            self::afterCutoff('Error157',110,'Fecha de toma de tamizaje hepatitis C es mayor a la fecha de corte'),
+            self::afterCutoff('Error158',111,'Fecha de toma de HDL es mayor a la fecha de corte'),
+            self::afterCutoff('Error159',112,'Fecha de toma de baciloscopia de diagnóstico es mayor a la fecha de corte'),
 
             ['code'=>'Error653','severity'=>'ERROR','operation'=>'in','variable'=>113,'values'=>['1','2','3','4','21'],'message'=>'Error en valores permitidos - Resultado de baciloscopia diagnóstico'],
             ['code'=>'Error655','severity'=>'ERROR','operation'=>'in','variable'=>114,'values'=>['0','4','5','6','21'],'message'=>'Error en valores permitidos - Clasificación del riesgo cardiovascular'],
@@ -66,6 +92,11 @@ final class RpedRuleCatalog
             ['code'=>'Error677','severity'=>'ERROR','operation'=>'date_before','variable'=>9,'date'=>'1900-01-01','message'=>'No se permite el registro de estos comodines en Fecha Nacimiento'],
             ['code'=>'Error678','severity'=>'ERROR','operation'=>'length_range_by_value','variable'=>102,'allowed_values'=>['0','21'],'allowed_lengths'=>[12],'allowed_pattern'=>'/^\\d{12}$/','message'=>'Solo se permite el registro de los valores 0, 21 o un valor de 12 dígitos de longitud'],
         ];
+    }
+
+    private static function afterCutoff(string $code, int $variable, string $message): array
+    {
+        return ['code'=>$code,'severity'=>'ERROR','operation'=>'date_after_cutoff','variable'=>$variable,'message'=>$message];
     }
 
     private static function forbidden(string $code, string $message, array $when, int $variable): array
