@@ -71,8 +71,8 @@ final class ValidationController
             }
 
             $result = $this->validator->validate($content,$variables,RpedRuleCatalog::executable());
-            $errorCount = count(array_filter($result['results'],static fn(array $item):bool=>strtoupper((string)($item['severity']??'ERROR'))==='ERROR');
-            $warningCount = count(array_filter($result['results'],static fn(array $item):bool=>strtoupper((string)($item['severity']??''))==='WARNING');
+            $errorCount = count(array_filter($result['results'], static fn(array $item): bool => strtoupper((string)($item['severity'] ?? 'ERROR')) === 'ERROR'));
+            $warningCount = count(array_filter($result['results'], static fn(array $item): bool => strtoupper((string)($item['severity'] ?? '')) === 'WARNING'));
             $run = ValidationRun::create([
                 'filename'=>$filename,'file_hash'=>$hash,'source_path'=>$sourcePath,'size_bytes'=>$size,'annex'=>'RPED',
                 'status'=>'COMPLETED','progress'=>100,'records'=>$result['records'],'processed_records'=>$result['records'],
