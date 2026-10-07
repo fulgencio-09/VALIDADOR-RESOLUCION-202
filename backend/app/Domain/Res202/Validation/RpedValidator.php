@@ -9,6 +9,7 @@ final class RpedValidator
     public function __construct(
         private readonly StructuralValidator $structuralValidator,
         private readonly RuleEngine $ruleEngine,
+        private readonly RpedCopConsistencyValidator $copConsistencyValidator,
     ) {}
 
     /** @param array<int,array{name:string,length:int,type:string}> $variables
@@ -43,9 +44,13 @@ final class RpedValidator
                 $record[$index] = $value;
             }
             $records++;
+            $line = $lineNumber + 1;
             $context = $cutoffDate !== null ? ['cutoff_date' => $cutoffDate] : [];
             foreach ($this->ruleEngine->validate($record, $rules, $context) as $result) {
-                $result['line'] = $lineNumber + 1;
+                $result['line'] = $line;
+                $business[] = $result;
+            }
+            foreach ($this->copConsistencyValidator->validate($record, $line, $cutoffDate) as $result) {
                 $business[] = $result;
             }
         }
