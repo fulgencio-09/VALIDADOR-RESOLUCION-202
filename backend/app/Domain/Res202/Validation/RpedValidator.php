@@ -32,7 +32,8 @@ final class RpedValidator
             RpedBatch638RuleCatalog::executable(),
             RpedBatchCoreSourceRuleCatalog::executable(),
             RpedBatchConsistencySourceRuleCatalog::executable(),
-            RpedClarifiedRuleCatalog::executable()
+            RpedClarifiedRuleCatalog::executable(),
+            RpedEarlierClarifiedRuleCatalog::executable()
         );
         foreach ($lines as $lineNumber => $line) {
             $fields = explode('|', $line);
