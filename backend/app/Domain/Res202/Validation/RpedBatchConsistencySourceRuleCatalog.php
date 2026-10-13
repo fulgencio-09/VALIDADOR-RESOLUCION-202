@@ -61,7 +61,7 @@ final class RpedBatchConsistencySourceRuleCatalog
             self::f('Warning573',46,['all'=>[['field'=>52,'op'=>'not_in','values'=>array_slice($w,0,6)],['field'=>46,'op'=>'eq','value'=>'21'],['age_years'=>true,'op'=>'lt','value'=>'8']]],'WARNING'),
             self::f('Error575',47,['all'=>[['field'=>88,'op'=>'neq','value'=>'19'],['field'=>47,'op'=>'neq','value'=>'0']]]),
             self::f('Error578',65,['all'=>[['field'=>48,'op'=>'in','values'=>['4','5']],['field'=>65,'op'=>'lte','value'=>'1900-01-01']]]),
-            self::f('Warning580',48,['all'=>[['field'=>65,'op'=>'gt','value'=>'1900-01-01'],['age_days'=>true,'op'=>'gt','value'=>'30'],['field'=>48,'op'=>'in','values'=>['4','5']]],'WARNING'),
+            self::f('Warning580',48,['all'=>[['field'=>65,'op'=>'gt','value'=>'1900-01-01'],['age_days'=>true,'op'=>'gt','value'=>'30'],['field'=>48,'op'=>'in','values'=>['4','5']]]],'WARNING'),
             self::f('Error581',65,['all'=>[['field'=>48,'op'=>'eq','value'=>'21'],['field'=>65,'op'=>'not_in','values'=>array_slice($w,0,6)]]]),
             self::f('Error583',51,['all'=>[['field'=>14,'op'=>'neq','value'=>'1'],['age_months'=>true,'op'=>'gte','value'=>'7'],['field'=>51,'op'=>'neq','value'=>'1845-01-01']]]),
             self::f('Error584',57,['all'=>[['field'=>105,'op'=>'gt','value'=>'1900-01-01'],['any'=>[['field'=>57,'op'=>'eq','value'=>'0'],['field'=>57,'op'=>'gte','value'=>'998']]]]]),
