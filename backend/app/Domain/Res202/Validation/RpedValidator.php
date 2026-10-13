@@ -67,7 +67,7 @@ final class RpedValidator
         return [
             'valid' => $results === [],
             'records' => $records,
-            'errors' => count(array_filter($results, static fn(array $r): bool => ($r['severity'] ?? 'ERROR') !== 'WARNING'),
+            'errors' => count(array_filter($results, static fn(array $r): bool => ($r['severity'] ?? 'ERROR') !== 'WARNING')),
             'warnings' => count(array_filter($results, static fn(array $r): bool => ($r['severity'] ?? '') === 'WARNING')),
             'results' => $results,
         ];
