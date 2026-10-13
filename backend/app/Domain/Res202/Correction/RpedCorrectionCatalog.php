@@ -13,7 +13,7 @@ final class RpedCorrectionCatalog
                 'action' => 'scientific_notation_to_integer',
                 'label' => 'Convertir notación científica a número entero',
                 'description' => 'Convierte únicamente valores como 2.60874E+13 a su representación decimal exacta, sin cambiar el valor matemático.',
-                'automatic' => false,
+                'automatic' => true,
             ],
         ];
     }
