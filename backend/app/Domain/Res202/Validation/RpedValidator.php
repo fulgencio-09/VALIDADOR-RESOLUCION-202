@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Res202\Validation;
 
+use DateTimeImmutable;
+
 final class RpedValidator
 {
     public function __construct(
@@ -49,6 +51,11 @@ final class RpedValidator
             $line = $lineNumber + 1;
             $context = $cutoffDate !== null ? ['cutoff_date' => $cutoffDate] : [];
             foreach ($this->ruleEngine->validate($record, $rules, $context) as $result) {
+                // Error305 solo aplica cuando la edad está entre 10 y 59 años:
+                // edad >= 10 años y < 60 años. Para 60 años o más no debe generarse.
+                if (($result['code'] ?? '') === 'Error305' && $this->ageMonthsAtCutoff($record[9] ?? null, $cutoffDate) >= 720) {
+                    continue;
+                }
                 $result['line'] = $line;
                 $business[] = $result;
             }
@@ -60,9 +67,23 @@ final class RpedValidator
         return [
             'valid' => $results === [],
             'records' => $records,
-            'errors' => count(array_filter($results, static fn(array $r): bool => ($r['severity'] ?? 'ERROR') !== 'WARNING')),
+            'errors' => count(array_filter($results, static fn(array $r): bool => ($r['severity'] ?? 'ERROR') !== 'WARNING'),
             'warnings' => count(array_filter($results, static fn(array $r): bool => ($r['severity'] ?? '') === 'WARNING')),
             'results' => $results,
         ];
+    }
+
+    private function ageMonthsAtCutoff(mixed $birthValue, mixed $cutoffValue): int
+    {
+        if (!is_string($birthValue) || !is_string($cutoffValue) || $birthValue === '' || $cutoffValue === '') {
+            return -1;
+        }
+        $birth = DateTimeImmutable::createFromFormat('!Y-m-d', $birthValue);
+        $cutoff = DateTimeImmutable::createFromFormat('!Y-m-d', $cutoffValue);
+        if ($birth === false || $cutoff === false || $birth > $cutoff || $birth < new DateTimeImmutable('1900-01-01')) {
+            return -1;
+        }
+        $diff = $birth->diff($cutoff);
+        return ($diff->y * 12) + $diff->m;
     }
 }
