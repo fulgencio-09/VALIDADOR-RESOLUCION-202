@@ -23,15 +23,22 @@ final class RpedCorrectionService
             $fields = explode('|', $lines[$line - 1]);
             if (!isset($fields[$variable])) throw new RuntimeException("La variable {$variable} no existe en la línea {$line}.");
             $old = $fields[$variable];
+            $targetVariable = $variable;
             $new = match ($action) {
                 'scientific_notation_to_integer' => $this->scientificToInteger($old),
                 'set_hemoglobin_result_998' => $this->setHemoglobinResult998($old),
+                'set_ldl_date_from_hemoglobin_0' => $this->setLdlDateFromHemoglobin($fields, '0', '1845-01-01', $line, $targetVariable),
+                'set_ldl_date_from_hemoglobin_998' => $this->setLdlDateFromHemoglobin($fields, '998', '1800-01-01', $line, $targetVariable),
                 default => throw new RuntimeException("Acción de corrección no soportada: {$action}."),
             };
-            if ($new === $old) throw new RuntimeException("El valor de la línea {$line}, variable {$variable} no requiere esta corrección.");
-            $fields[$variable] = $new;
+            if ($action === 'set_ldl_date_from_hemoglobin_0' || $action === 'set_ldl_date_from_hemoglobin_998') {
+                $targetVariable = 72;
+                $old = $fields[$targetVariable] ?? '';
+            }
+            if ($new === $old) throw new RuntimeException("El valor de la línea {$line}, variable {$targetVariable} no requiere esta corrección.");
+            $fields[$targetVariable] = $new;
             $lines[$line - 1] = implode('|', $fields);
-            $changes[] = ['code'=>$code,'line'=>$line,'variable'=>$variable,'action'=>$action,'old_value'=>$old,'new_value'=>$new];
+            $changes[] = ['code'=>$code,'line'=>$line,'variable'=>$targetVariable,'action'=>$action,'old_value'=>$old,'new_value'=>$new];
         }
         return ['content'=>implode("\r\n", $lines), 'changes'=>$changes];
     }
@@ -59,5 +66,16 @@ final class RpedCorrectionService
     private function setHemoglobinResult998(string $value): string
     {
         return '998';
+    }
+
+    private function setLdlDateFromHemoglobin(array $fields, string $expectedHemoglobin, string $newDate, int $line, int $targetVariable): string
+    {
+        if (!isset($fields[92]) || $fields[92] !== $expectedHemoglobin) {
+            throw new RuntimeException("La variable 92 de la línea {$line} no contiene {$expectedHemoglobin}; no se aplicó la corrección.");
+        }
+        if (!isset($fields[72])) {
+            throw new RuntimeException("La variable 72 no existe en la línea {$line}.");
+        }
+        return $newDate;
     }
 }
