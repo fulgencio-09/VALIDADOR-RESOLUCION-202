@@ -180,20 +180,16 @@ final class RpedCorrectionService
     private function copyVariable29(array $fields, int $targetVariable, int $line): string
     {
         if (!array_key_exists(29, $fields)) {
-            return $fields[$targetVariable] ?? '';
+            throw new RuntimeException("La variable 29 no existe en la línea {$line}.");
         }
         if (!array_key_exists($targetVariable, $fields)) {
-            return '';
+            throw new RuntimeException("La variable {$targetVariable} no existe en la línea {$line}.");
         }
 
-        $source = trim((string) $fields[29]);
-        if (!$this->isRealDate($source)) {
-            // No bloquear toda la corrección automática por una línea cuya variable 29 no sea utilizable.
-            // Se conserva el valor original de la variable objetivo y se continúa con las demás correcciones.
-            return (string) $fields[$targetVariable];
-        }
-
-        return $source;
+        // Para estas correcciones se debe copiar siempre el contenido de la variable 29,
+        // incluso si no corresponde a una fecha válida. La regla de corrección solicita
+        // igualar la variable destino con la variable 29.
+        return (string) $fields[29];
     }
 
     private function setIfExact(string $old, string $expected, string $replacement): string
