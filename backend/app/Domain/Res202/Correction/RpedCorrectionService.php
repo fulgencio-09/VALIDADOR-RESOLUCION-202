@@ -27,15 +27,16 @@ final class RpedCorrectionService
             $new = match ($action) {
                 'scientific_notation_to_integer' => $this->scientificToInteger($old),
                 'set_hemoglobin_result_998' => $this->setHemoglobinResult998($old),
-                'set_ldl_date_from_hemoglobin_0' => $this->setLdlDateFromHemoglobin($fields, $line),
-                'set_ldl_date_from_hemoglobin_998' => $this->setLdlDateFromHemoglobin($fields, $line),
+                'set_ldl_date_from_hemoglobin' => $this->setLdlDateFromHemoglobin($fields, $line),
                 default => throw new RuntimeException("Acción de corrección no soportada: {$action}."),
             };
-            if ($action === 'set_ldl_date_from_hemoglobin_0' || $action === 'set_ldl_date_from_hemoglobin_998') {
+            if ($action === 'set_ldl_date_from_hemoglobin') {
                 $targetVariable = 72;
                 $old = $fields[$targetVariable] ?? '';
             }
-            if ($new === $old) throw new RuntimeException("El valor de la línea {$line}, variable {$targetVariable} no requiere esta corrección.");
+            if ($new === $old) {
+                continue;
+            }
             $fields[$targetVariable] = $new;
             $lines[$line - 1] = implode('|', $fields);
             $changes[] = ['code'=>$code,'line'=>$line,'variable'=>$targetVariable,'action'=>$action,'old_value'=>$old,'new_value'=>$new];
