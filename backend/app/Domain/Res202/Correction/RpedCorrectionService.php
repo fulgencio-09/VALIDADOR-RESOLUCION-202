@@ -31,7 +31,6 @@ final class RpedCorrectionService
 
             $fields = explode('|', $lines[$line - 1]);
 
-            // Estas correcciones cambian dos variables de la misma regla.
             if ($action === 'set_visual_acuity_under_3_left' || $action === 'set_visual_acuity_under_3_right') {
                 $firstVariable = $action === 'set_visual_acuity_under_3_left' ? 27 : 28;
                 $firstOld = $fields[$firstVariable] ?? null;
@@ -181,15 +180,19 @@ final class RpedCorrectionService
     private function copyVariable29(array $fields, int $targetVariable, int $line): string
     {
         if (!array_key_exists(29, $fields)) {
-            throw new RuntimeException("La variable 29 no existe en la línea {$line}.");
+            return $fields[$targetVariable] ?? '';
         }
         if (!array_key_exists($targetVariable, $fields)) {
-            throw new RuntimeException("La variable {$targetVariable} no existe en la línea {$line}.");
+            return '';
         }
+
         $source = trim((string) $fields[29]);
         if (!$this->isRealDate($source)) {
-            throw new RuntimeException("La variable 29 de la línea {$line} no contiene una fecha válida para usar como corrección.");
+            // No bloquear toda la corrección automática por una línea cuya variable 29 no sea utilizable.
+            // Se conserva el valor original de la variable objetivo y se continúa con las demás correcciones.
+            return (string) $fields[$targetVariable];
         }
+
         return $source;
     }
 
