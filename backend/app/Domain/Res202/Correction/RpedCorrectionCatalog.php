@@ -33,6 +33,12 @@ final class RpedCorrectionCatalog
                 'description' => 'Ajusta automáticamente la variable 72 según el valor de la variable 92: 0 corresponde a 1845-01-01 y 998 corresponde a 1800-01-01.',
                 'automatic' => true,
             ],
+            'Error021' => [
+                'action' => 'set_variable_90_from_variable_2',
+                'label' => 'Igualar variable 90 a variable 2',
+                'description' => 'Cuando la variable 89 es diferente de 0 y 999, registra en la variable 90 el mismo valor de la variable 2.',
+                'automatic' => true,
+            ],
         ];
     }
 
