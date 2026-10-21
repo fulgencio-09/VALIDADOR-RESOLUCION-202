@@ -27,8 +27,8 @@ final class RpedCorrectionService
             $new = match ($action) {
                 'scientific_notation_to_integer' => $this->scientificToInteger($old),
                 'set_hemoglobin_result_998' => $this->setHemoglobinResult998($old),
-                'set_ldl_date_from_hemoglobin_0' => $this->setLdlDateFromHemoglobin($fields, '0', '1845-01-01', $line, $targetVariable),
-                'set_ldl_date_from_hemoglobin_998' => $this->setLdlDateFromHemoglobin($fields, '998', '1800-01-01', $line, $targetVariable),
+                'set_ldl_date_from_hemoglobin_0' => $this->setLdlDateFromHemoglobin($fields, $line),
+                'set_ldl_date_from_hemoglobin_998' => $this->setLdlDateFromHemoglobin($fields, $line),
                 default => throw new RuntimeException("Acción de corrección no soportada: {$action}."),
             };
             if ($action === 'set_ldl_date_from_hemoglobin_0' || $action === 'set_ldl_date_from_hemoglobin_998') {
@@ -68,14 +68,15 @@ final class RpedCorrectionService
         return '998';
     }
 
-    private function setLdlDateFromHemoglobin(array $fields, string $expectedHemoglobin, string $newDate, int $line, int $targetVariable): string
+    private function setLdlDateFromHemoglobin(array $fields, int $line): string
     {
-        if (!isset($fields[92]) || $fields[92] !== $expectedHemoglobin) {
-            throw new RuntimeException("La variable 92 de la línea {$line} no contiene {$expectedHemoglobin}; no se aplicó la corrección.");
+        $hemoglobin = $fields[92] ?? null;
+        if ($hemoglobin === '0') {
+            return '1845-01-01';
         }
-        if (!isset($fields[72])) {
-            throw new RuntimeException("La variable 72 no existe en la línea {$line}.");
+        if ($hemoglobin === '998') {
+            return '1800-01-01';
         }
-        return $newDate;
+        throw new RuntimeException("La variable 92 de la línea {$line} debe contener 0 o 998 para corregir automáticamente la fecha LDL.");
     }
 }
