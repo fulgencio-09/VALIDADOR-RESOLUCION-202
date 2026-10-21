@@ -21,6 +21,18 @@ final class RpedCorrectionCatalog
                 'description' => 'Para mujeres de 10 a 17 años con comodín de no realización o sin dato en la fecha de toma de hemoglobina, registra 998 en el resultado.',
                 'automatic' => true,
             ],
+            'Error617' => [
+                'action' => 'set_ldl_date_from_hemoglobin_0',
+                'label' => 'Registrar 1845-01-01 en fecha de toma LDL',
+                'description' => 'Cuando el resultado de hemoglobina (variable 92) es 0, registra 1845-01-01 en la fecha de toma LDL (variable 72).',
+                'automatic' => true,
+            ],
+            'Error618' => [
+                'action' => 'set_ldl_date_from_hemoglobin_998',
+                'label' => 'Registrar 1800-01-01 en fecha de toma LDL',
+                'description' => 'Cuando el resultado de hemoglobina (variable 92) es 998, registra 1800-01-01 en la fecha de toma LDL (variable 72).',
+                'automatic' => true,
+            ],
         ];
     }
 
