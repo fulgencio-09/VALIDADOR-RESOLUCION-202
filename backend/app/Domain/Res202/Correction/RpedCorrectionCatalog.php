@@ -15,6 +15,12 @@ final class RpedCorrectionCatalog
                 'description' => 'Convierte únicamente valores como 2.60874E+13 a su representación decimal exacta, sin cambiar el valor matemático.',
                 'automatic' => true,
             ],
+            'Error640' => [
+                'action' => 'set_hemoglobin_result_998',
+                'label' => 'Registrar 998 en resultado de hemoglobina',
+                'description' => 'Para mujeres de 10 a 17 años con comodín de no realización o sin dato en la fecha de toma de hemoglobina, registra 998 en el resultado.',
+                'automatic' => true,
+            ],
         ];
     }
 
