@@ -25,6 +25,7 @@ final class RpedCorrectionService
             $old = $fields[$variable];
             $new = match ($action) {
                 'scientific_notation_to_integer' => $this->scientificToInteger($old),
+                'set_hemoglobin_result_998' => $this->setHemoglobinResult998($old),
                 default => throw new RuntimeException("Acción de corrección no soportada: {$action}."),
             };
             if ($new === $old) throw new RuntimeException("El valor de la línea {$line}, variable {$variable} no requiere esta corrección.");
@@ -53,5 +54,10 @@ final class RpedCorrectionService
             $digits .= str_repeat('0', $decimalPosition - strlen($digits));
         }
         return ltrim($digits, '0') ?: '0';
+    }
+
+    private function setHemoglobinResult998(string $value): string
+    {
+        return '998';
     }
 }
