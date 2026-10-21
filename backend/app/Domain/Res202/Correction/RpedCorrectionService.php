@@ -28,10 +28,15 @@ final class RpedCorrectionService
                 'scientific_notation_to_integer' => $this->scientificToInteger($old),
                 'set_hemoglobin_result_998' => $this->setHemoglobinResult998($old),
                 'set_ldl_date_from_hemoglobin' => $this->setLdlDateFromHemoglobin($fields, $line),
+                'set_variable_90_from_variable_2' => $this->setVariable90FromVariable2($fields, $line),
                 default => throw new RuntimeException("Acción de corrección no soportada: {$action}."),
             };
             if ($action === 'set_ldl_date_from_hemoglobin') {
                 $targetVariable = 72;
+                $old = $fields[$targetVariable] ?? '';
+            }
+            if ($action === 'set_variable_90_from_variable_2') {
+                $targetVariable = 90;
                 $old = $fields[$targetVariable] ?? '';
             }
             if ($new === $old) {
@@ -79,5 +84,20 @@ final class RpedCorrectionService
             return '1800-01-01';
         }
         throw new RuntimeException("La variable 92 de la línea {$line} debe contener 0 o 998 para corregir automáticamente la fecha LDL.");
+    }
+
+    private function setVariable90FromVariable2(array $fields, int $line): string
+    {
+        $value89 = $fields[89] ?? null;
+        if ($value89 === null) {
+            throw new RuntimeException("La variable 89 no existe en la línea {$line}.");
+        }
+        if ($value89 === '0' || $value89 === '999') {
+            throw new RuntimeException("La variable 89 de la línea {$line} debe ser diferente de 0 y 999 para aplicar Error021 automáticamente.");
+        }
+        if (!array_key_exists(2, $fields)) {
+            throw new RuntimeException("La variable 2 no existe en la línea {$line}.");
+        }
+        return $fields[2];
     }
 }
