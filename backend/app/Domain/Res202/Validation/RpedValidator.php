@@ -49,17 +49,21 @@ final class RpedValidator
             }
             $records++;
             $line = $lineNumber + 1;
+            $ageMonths = $this->ageMonthsAtCutoff($record[9] ?? null, $cutoffDate);
+            $ageYears = $this->ageYearsAtCutoff($record[9] ?? null, $cutoffDate);
             $context = $cutoffDate !== null ? ['cutoff_date' => $cutoffDate] : [];
             foreach ($this->ruleEngine->validate($record, $rules, $context) as $result) {
-                // Error305 solo aplica cuando la edad está entre 10 y 59 años:
-                // edad >= 10 años y < 60 años. Para 60 años o más no debe generarse.
-                if (($result['code'] ?? '') === 'Error305' && $this->ageMonthsAtCutoff($record[9] ?? null, $cutoffDate) >= 720) {
+                // Error305 solo aplica cuando la edad está entre 10 y 59 años.
+                // Menor de 10 o mayor/igual a 60 no debe generar Error305.
+                if (($result['code'] ?? '') === 'Error305' && $ageMonths >= 0 && ($ageMonths < 120 || $ageMonths >= 720)) {
                     continue;
                 }
                 $result['line'] = $line;
+                $result['age'] = $ageYears;
                 $business[] = $result;
             }
             foreach ($this->copConsistencyValidator->validate($record, $line, $cutoffDate) as $result) {
+                $result['age'] = $ageYears;
                 $business[] = $result;
             }
         }
@@ -85,5 +89,18 @@ final class RpedValidator
         }
         $diff = $birth->diff($cutoff);
         return ($diff->y * 12) + $diff->m;
+    }
+
+    private function ageYearsAtCutoff(mixed $birthValue, mixed $cutoffValue): ?int
+    {
+        if (!is_string($birthValue) || !is_string($cutoffValue) || $birthValue === '' || $cutoffValue === '') {
+            return null;
+        }
+        $birth = DateTimeImmutable::createFromFormat('!Y-m-d', $birthValue);
+        $cutoff = DateTimeImmutable::createFromFormat('!Y-m-d', $cutoffValue);
+        if ($birth === false || $cutoff === false || $birth > $cutoff || $birth < new DateTimeImmutable('1900-01-01')) {
+            return null;
+        }
+        return $birth->diff($cutoff)->y;
     }
 }
