@@ -226,21 +226,17 @@ final class RpedCorrectionService
         if ($cutoffDate === null || !$this->isRealDate($cutoffDate)) {
             throw new RuntimeException("La fecha de corte del registro de control no es válida para calcular la edad de Error550 en la línea {$line}.");
         }
-
         $birth = $this->requireVariable($fields, 9, $line);
         if (!$this->isRealDate($birth)) {
             throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad de Error550.");
         }
-
         $ageMonths = $this->ageMonthsAtCutoff($birth, $cutoffDate);
         if ($ageMonths < 0) {
             throw new RuntimeException("No fue posible calcular la edad de la línea {$line} para Error550.");
         }
-
         if ($ageMonths < 156) {
             return [40 => '21', 63 => '1800-01-01'];
         }
-
         return [40 => '0', 63 => '1845-01-01'];
     }
 
@@ -283,30 +279,25 @@ final class RpedCorrectionService
         if ($cutoffDate === null || !$this->isRealDate($cutoffDate)) {
             throw new RuntimeException("La fecha de corte del registro de control no es válida para calcular la edad de Error639 en la línea {$line}.");
         }
-
         $birth = $this->requireVariable($fields, 9, $line);
         if (!$this->isRealDate($birth)) {
             throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad de Error639.");
         }
-
         $ageMonths = $this->ageMonthsAtCutoff($birth, $cutoffDate);
         if ($ageMonths < 0) {
             throw new RuntimeException("No fue posible calcular la edad de la línea {$line} para Error639.");
         }
-
-        // La matriz indica población entre 10 y 17 años para el resultado 998.
         if ($ageMonths >= 120 && $ageMonths < 216) {
             return [103 => '1800-01-01', 104 => '998'];
         }
-
         return [103 => '1845-01-01', 104 => '0'];
     }
 
     private function applyWarningMatrixCorrection(array $fields, int $line, int $variable): array
     {
         return match ($line) {
-            679, 896 => $variable === 29 ? [29 => '0'] : ($variable === 31 ? [31 => '4'] : []),
-            682, 897 => $variable === 29 ? [29 => '5'] : ($variable === 31 ? [31 => '21'] : []),
+            679, 896 => $variable === 31 ? [31 => '4'] : [],
+            682, 897 => $variable === 31 ? [31 => '21'] : [],
             898 => $variable === 29 && in_array($fields[16] ?? null, ['4', '5'], true)
                 ? [52 => $this->requireVariable($fields, 29, $line)]
                 : [],
