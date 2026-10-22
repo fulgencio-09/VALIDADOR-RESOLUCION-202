@@ -33,6 +33,7 @@ final class AutomaticCorrectionController
 
             $corrections = [];
             $seen = [];
+            $error536 = [];
 
             foreach (($validationRun->results ?? []) as $item) {
                 $code = (string) ($item['code'] ?? '');
@@ -55,10 +56,15 @@ final class AutomaticCorrectionController
                     continue;
                 }
 
-                // Dos errores distintos pueden apuntar a la misma variable y usar
-                // exactamente la misma acción (por ejemplo Error082 y Error621
-                // sobre la variable 93). Una corrección bidireccional no debe
-                // ejecutarse dos veces porque la segunda ejecución desharía la primera.
+                // Error536 es estrictamente unidireccional: si variable 36 = 0,
+                // debe pasar a 21. No se debe usar una operación toggle porque
+                // los cuatro valores posibles del contexto podrían deshacer la
+                // corrección cuando existan otros hallazgos en la misma línea.
+                if ($code === 'Error536' && $variable === 36 && $value === '0') {
+                    $error536[] = ['code' => $code, 'line' => $line, 'variable' => 36];
+                    continue;
+                }
+
                 $key = $line . '|' . $variable . '|' . $action;
                 if (isset($seen[$key])) {
                     continue;
@@ -73,7 +79,7 @@ final class AutomaticCorrectionController
                 ];
             }
 
-            if ($corrections === []) {
+            if ($corrections === [] && $error536 === []) {
                 return response()->json([
                     'message' => 'No se encontraron correcciones automáticas seguras para esta validación.',
                     'changes' => [],
@@ -88,18 +94,48 @@ final class AutomaticCorrectionController
             }
 
             $source = Storage::disk('local')->get($validationRun->source_path);
+
+            // Aplicar Error536 directamente sobre el archivo fuente para
+            // garantizar 0 -> 21, sin posibilidad de invertir el valor.
+            foreach ($error536 as $item) {
+                $lines = preg_split('/\r\n|\n|\r/', $source) ?: [];
+                $index = $item['line'] - 1;
+                if (!isset($lines[$index])) {
+                    continue;
+                }
+                $fields = explode('|', $lines[$index]);
+                if (!array_key_exists(36, $fields)) {
+                    continue;
+                }
+                if ($fields[36] === '0') {
+                    $fields[36] = '21';
+                    $source = implode("\r\n", $lines);
+                    $changes536[] = [
+                        'code' => 'Error536',
+                        'line' => $item['line'],
+                        'variable' => 36,
+                        'action' => 'set_variable_36_21',
+                        'old_value' => '0',
+                        'new_value' => '21',
+                    ];
+                }
+            }
+
             $result = $this->service->apply($source, $corrections);
+            $changes = array_merge($changes536 ?? [], $result['changes']);
+            $correctedContent = $result['content'];
+
             $variables = RpedCatalogLoader::variables(base_path('../database/catalog/variables_rped.csv'));
-            $verification = $this->validator->validate($result['content'], $variables, RpedRuleCatalog::executable());
+            $verification = $this->validator->validate($correctedContent, $variables, RpedRuleCatalog::executable());
 
             $filename = pathinfo($validationRun->filename, PATHINFO_FILENAME) . '_CORREGIDO.txt';
             $safeName = preg_replace('/[^A-Za-z0-9._-]/', '_', $filename) ?: 'archivo_CORREGIDO.txt';
             $path = 'validation-corrected/' . now()->format('Y/m/d') . '/' . uniqid('res202_auto_', true) . '_' . $safeName;
-            Storage::disk('local')->put($path, $result['content']);
-            $correctedHash = hash('sha256', $result['content']);
+            Storage::disk('local')->put($path, $correctedContent);
+            $correctedHash = hash('sha256', $correctedContent);
 
-            DB::transaction(function () use ($validationRun, $result, $path, $correctedHash, $verification): void {
-                foreach ($result['changes'] as $change) {
+            DB::transaction(function () use ($validationRun, $changes, $path, $correctedHash, $verification): void {
+                foreach ($changes as $change) {
                     DB::table('correction_history')->insert([
                         'validation_run_id' => $validationRun->id,
                         'code' => $change['code'],
@@ -112,9 +148,6 @@ final class AutomaticCorrectionController
                     ]);
                 }
 
-                // El resultado visible de la validación pasa a ser el resultado
-                // de la revalidación del archivo corregido. Así la tabla no
-                // continúa mostrando los errores que ya fueron solucionados.
                 $validationRun->forceFill([
                     'corrected_path' => $path,
                     'corrected_hash' => $correctedHash,
@@ -135,7 +168,7 @@ final class AutomaticCorrectionController
             return response()->json([
                 'message' => 'Correcciones automáticas aplicadas y archivo revalidado correctamente.',
                 'filename' => $filename,
-                'changes' => $result['changes'],
+                'changes' => $changes,
                 'verification' => [
                     'valid' => $verification['valid'],
                     'records' => $verification['records'],
