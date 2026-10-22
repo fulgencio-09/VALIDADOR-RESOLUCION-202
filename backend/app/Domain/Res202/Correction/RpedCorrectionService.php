@@ -76,12 +76,8 @@ final class RpedCorrectionService
                 $variable => $this->scientificToInteger((string) ($fields[$variable] ?? '')),
             ],
             'set_hemoglobin_result_998' => [104 => '998'],
-            'set_ldl_date_from_hemoglobin' => [
-                72 => $this->setLdlDateFromHemoglobin($fields, $line),
-            ],
-            'set_variable_90_from_variable_2' => [
-                90 => $this->setVariable90FromVariable2($fields, $line),
-            ],
+            'set_ldl_date_from_hemoglobin' => [72 => $this->setLdlDateFromHemoglobin($fields, $line)],
+            'set_variable_90_from_variable_2' => [90 => $this->setVariable90FromVariable2($fields, $line)],
 
             'copy_variable_29_to_62' => [62 => $this->copyVariable29($fields, 62, $line)],
             'copy_variable_29_to_63' => [63 => $this->copyVariable29($fields, 63, $line)],
@@ -125,9 +121,7 @@ final class RpedCorrectionService
 
             'correct_error_550' => $this->correctError550($fields, $line),
             'correct_child_development_43_46' => $this->correctChildDevelopment($fields, $line),
-            'normalize_variable_102_length' => [
-                102 => $this->normalizeVariable102((string) ($fields[102] ?? '')),
-            ],
+            'normalize_variable_102_length' => [102 => $this->normalizeVariable102((string) ($fields[102] ?? ''))],
             'correct_error_639' => $this->correctError639($fields, $line),
 
             default => throw new RuntimeException("Acción de corrección no soportada: {$action}."),
@@ -290,13 +284,7 @@ final class RpedCorrectionService
         $cutoff = $this->requireVariable($fields, 29, $line);
 
         if ($cutoff === '1800-01-01') {
-            return [
-                43 => '21',
-                44 => '21',
-                45 => '21',
-                46 => '21',
-                52 => '1800-01-01',
-            ];
+            return [43 => '21', 44 => '21', 45 => '21', 46 => '21', 52 => '1800-01-01'];
         }
 
         if (!$this->isRealDate($cutoff)) {
@@ -314,13 +302,7 @@ final class RpedCorrectionService
             throw new RuntimeException("La edad de la línea {$line} supera los 7 años establecidos para esta corrección.");
         }
 
-        return [
-            43 => '5',
-            44 => '5',
-            45 => '5',
-            46 => '5',
-            52 => $cutoff,
-        ];
+        return [43 => '5', 44 => '5', 45 => '5', 46 => '5', 52 => $cutoff];
     }
 
     private function normalizeVariable102(string $value): string
@@ -342,24 +324,23 @@ final class RpedCorrectionService
 
     private function correctError639(array $fields, int $line): array
     {
-        $cutoff = $this->requireVariable($fields, 29, $line);
-        $birth = $this->requireVariable($fields, 9, $line);
+        $value104 = $this->requireVariable($fields, 104, $line);
 
-        if (!$this->isRealDate($cutoff)) {
-            throw new RuntimeException("La variable 29 de la línea {$line} debe ser una fecha válida para calcular la edad de Error639.");
+        // Error639 se corrige a partir de la relación entre las variables 103 y 104.
+        // No se debe calcular la edad ni exigir que la variable 29 sea una fecha para
+        // aplicar esta corrección. La variable 104 determina el comodín que corresponde
+        // en la variable 103.
+        if ($value104 === '0') {
+            return [103 => '1845-01-01'];
         }
 
-        $ageMonths = $this->ageMonthsAtCutoff($birth, $cutoff);
-
-        if ($ageMonths < 0) {
-            throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha válida para calcular la edad.");
+        if ($value104 === '998') {
+            return [103 => '1800-01-01'];
         }
 
-        if ($ageMonths >= 120 && $ageMonths <= 215) {
-            return [103 => '1800-01-01', 104 => '998'];
-        }
-
-        return [103 => '1845-01-01', 104 => '0'];
+        // Si 104 no es 0 ni 998, no existe un valor automático que podamos inventar
+        // para 103. Se deja sin cambio para que la validación de fecha determine el error.
+        return [];
     }
 
     private function requireVariable(array $fields, int $variable, int $line): string
