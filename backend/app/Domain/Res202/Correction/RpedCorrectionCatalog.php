@@ -14,7 +14,6 @@ final class RpedCorrectionCatalog
             'Error617' => ['action' => 'set_ldl_date_from_hemoglobin', 'label' => 'Ajustar fecha LDL según variable 92', 'description' => 'Variable 92 = 0 -> variable 72 = 1845-01-01; variable 92 = 998 -> variable 72 = 1800-01-01.', 'automatic' => true],
             'Error618' => ['action' => 'set_ldl_date_from_hemoglobin', 'label' => 'Ajustar fecha LDL según variable 92', 'description' => 'Variable 92 = 0 -> variable 72 = 1845-01-01; variable 92 = 998 -> variable 72 = 1800-01-01.', 'automatic' => true],
             'Error021' => ['action' => 'set_variable_90_from_variable_2', 'label' => 'Igualar variable 90 a variable 2', 'description' => 'Cuando variable 89 es diferente de 0 y 999, variable 90 toma el valor de variable 2.', 'automatic' => true],
-
             'Error131' => ['action' => 'copy_variable_29_to_62', 'label' => 'Copiar variable 29 a variable 62', 'description' => 'La variable 62 toma exactamente el contenido de la variable 29.', 'automatic' => true],
             'Error132' => ['action' => 'copy_variable_29_to_63', 'label' => 'Copiar variable 29 a variable 63', 'description' => 'La variable 63 toma exactamente el contenido de la variable 29.', 'automatic' => true],
             'Error142' => ['action' => 'copy_variable_29_to_76', 'label' => 'Copiar variable 29 a variable 76', 'description' => 'La variable 76 toma exactamente el contenido de la variable 29.', 'automatic' => true],
@@ -23,7 +22,6 @@ final class RpedCorrectionCatalog
             'Error153' => ['action' => 'copy_variable_29_to_103', 'label' => 'Copiar variable 29 a variable 103', 'description' => 'La variable 103 toma exactamente el contenido de la variable 29.', 'automatic' => true],
             'Error642' => ['action' => 'copy_variable_29_to_105', 'label' => 'Copiar variable 29 a variable 105', 'description' => 'La variable 105 toma exactamente el contenido de la variable 29.', 'automatic' => true],
             'Error150' => ['action' => 'copy_variable_29_to_96', 'label' => 'Copiar variable 29 a variable 96', 'description' => 'La variable 96 toma exactamente el contenido de la variable 29.', 'automatic' => true],
-
             'Error064' => ['action' => 'set_variable_71_one', 'label' => 'Registrar 1 en variable 71', 'description' => 'Variable 71 = 1.', 'automatic' => true],
             'Error084' => ['action' => 'set_variable_94_zero', 'label' => 'Registrar 0 en variable 94', 'description' => 'Variable 94 = 0.', 'automatic' => true],
             'Error223' => ['action' => 'set_variable_14_21', 'label' => 'Registrar 21 en variable 14', 'description' => 'Variable 14 = 21.', 'automatic' => true],
@@ -40,7 +38,6 @@ final class RpedCorrectionCatalog
             'Error622' => ['action' => 'set_variable_93_1800', 'label' => 'Registrar 1800-01-01 en variable 93', 'description' => 'Variable 93 = 1800-01-01.', 'automatic' => true],
             'Error669' => ['action' => 'set_variable_77_zero', 'label' => 'Registrar 0 en variable 77', 'description' => 'Variable 77 = 0.', 'automatic' => true],
             'Error670' => ['action' => 'set_variable_77_one', 'label' => 'Registrar 1 en variable 77', 'description' => 'Variable 77 = 1.', 'automatic' => true],
-
             'Error328' => ['action' => 'correct_error_328', 'label' => 'Corregir variables 70 y 52', 'description' => 'Variable 70 = 1. Si variable 16 es 4 o 5, variable 52 toma la fecha de variable 29.', 'automatic' => true],
             'Error379' => ['action' => 'correct_error_379', 'label' => 'Corregir variables relacionadas', 'description' => 'Registra los valores indicados en las variables 35, 49, 50, 56, 58, 59, 60 y 61.', 'automatic' => true],
             'Error503' => ['action' => 'set_variable_52_from_29_when_16_4_5', 'label' => 'Corregir variable 52 según variable 16', 'description' => 'Si variable 16 es 4 o 5, variable 52 toma la fecha de variable 29.', 'automatic' => true],
@@ -56,11 +53,10 @@ final class RpedCorrectionCatalog
             'Error635' => ['action' => 'normalize_variable_102_length', 'label' => 'Normalizar variable 102 a 12 dígitos', 'description' => 'Si variable 102 es 0, registra doce ceros. Si tiene 11 dígitos numéricos, agrega un cero a la izquierda.', 'automatic' => true],
             'Error639' => ['action' => 'correct_error_639', 'label' => 'Corregir variables 103 y 104 según edad', 'description' => 'Entre 10 y 17 años: 103 = 1800-01-01 y 104 = 998. Fuera de ese rango: 103 = 1845-01-01 y 104 = 0.', 'automatic' => true],
             'Error678' => ['action' => 'normalize_variable_102_length', 'label' => 'Normalizar variable 102 a 12 dígitos', 'description' => 'Si variable 102 tiene 11 dígitos numéricos, agrega un cero a la izquierda.', 'automatic' => true],
-
             'Error634' => ['action' => 'omit_error', 'label' => 'Omitir error', 'description' => 'La matriz indica omitir el error; no modifica el dato.', 'automatic' => false],
             'STRUCT011' => ['action' => 'omit_error', 'label' => 'Omitir error', 'description' => 'La matriz indica omitir el error; no modifica el dato.', 'automatic' => false],
-            'Warning674' => ['action' => 'apply_warning_matrix_correction', 'label' => 'Aplicar corrección de Warning674', 'description' => 'Aplica el valor indicado en la columna G según la línea y la condición descrita en la matriz.', 'automatic' => true],
-            'Warning675' => ['action' => 'apply_warning_matrix_correction', 'label' => 'Aplicar corrección de Warning675', 'description' => 'Aplica el valor indicado en la columna G según la línea y la condición descrita en la matriz.', 'automatic' => true],
+            'Warning674' => ['action' => 'omit_error', 'label' => 'No modificar variables 29 ni 31', 'description' => 'Las variables 29 y 31 no se modifican automáticamente.', 'automatic' => false],
+            'Warning675' => ['action' => 'omit_error', 'label' => 'No modificar variables 29 ni 31', 'description' => 'Las variables 29 y 31 no se modifican automáticamente.', 'automatic' => false],
         ];
     }
 
