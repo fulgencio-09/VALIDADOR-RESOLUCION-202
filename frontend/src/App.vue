@@ -111,6 +111,49 @@ async function openRun(id) {
 async function applyFilters() { if (!validation.value) return; resultsPage.value = 1; await loadResults(validation.value.id, 1) }
 async function goPage(page) { if (!validation.value || page < 1 || page > totalPages.value || resultsLoading.value) return; await loadResults(validation.value.id, page) }
 function canCorrect(item) { return item.code === 'Error220' && Number.isInteger(Number(item.variable)) && item.line && /^[0-9]+(?:\.[0-9]+)?[eE]\+?[0-9]+$/.test(String(item.value ?? '')) }
+
+function proposedChange(item) {
+  const code = String(item.code || '')
+  const value = String(item.value ?? '')
+  const variable = Number(item.variable)
+
+  if (code === 'Error076' || code === 'Error021') {
+    return variable === 90 ? (value === '999' ? '999 → 0 (viceversa)' : value === '0' ? '0 → 999 (viceversa)' : 'Variable 90: 999 ↔ 0') : '—'
+  }
+  if (code === 'Error082' || code === 'Error621' || code === 'Error622') {
+    return variable === 93 ? (value === '1800-01-01' ? '1800-01-01 → 1845-01-01 (viceversa)' : value === '1845-01-01' ? '1845-01-01 → 1800-01-01 (viceversa)' : 'Variable 93: 1800-01-01 ↔ 1845-01-01') : '—'
+  }
+  if (code === 'Error304' || code === 'Error305') {
+    return variable === 53 ? (value === '1800-01-01' ? '1800-01-01 → 1845-01-01 (viceversa)' : value === '1845-01-01' ? '1845-01-01 → 1800-01-01 (viceversa)' : 'Variable 53: 1800-01-01 ↔ 1845-01-01') : '—'
+  }
+  if (code === 'Error064' || code === 'Error329') {
+    return variable === 71 ? (value === '1' ? '1 → 0 (viceversa)' : value === '0' ? '0 → 1 (viceversa)' : value === '21' ? '21 → 1' : 'Variable 71: 1 ↔ 0') : '—'
+  }
+  if (code === 'Error084') return variable === 94 ? 'Variable 94 → 0' : '—'
+  if (code === 'Error223') return 'Cambiar al valor 21 según la regla del error'
+  if (code === 'Error227') return 'Cambiar al valor 0 según la regla del error'
+  if (code === 'Error308') return variable === 54 ? (value === '21' ? '21 → 0 (viceversa)' : value === '0' ? '0 → 21 (viceversa)' : 'Variable 54: 21 ↔ 0') : '—'
+  if (code === 'Error328') return 'Variable 70 → 1; si variable 16 = 4/5, variable 52 toma la fecha de variable 29'
+  if (code === 'Error536') return variable === 36 ? (value === '0' ? '0 → 21 (viceversa)' : value === '21' ? '21 → 0 (viceversa)' : 'Variable 36: 0 ↔ 21') : '—'
+  if (['Error558', 'Error562', 'Error566', 'Error570'].includes(code)) return variable === 52 ? (value === '1800-01-01' ? '1800-01-01 → 1845-01-01 (viceversa)' : value === '1845-01-01' ? '1845-01-01 → 1800-01-01 (viceversa)' : 'Variable 52: 1800-01-01 ↔ 1845-01-01') : '—'
+  if (code === 'Error597') return 'Variable 76 → 1845-01-01 según edad (regla de edad)'
+  if (code === 'Error362') return variable === 96 ? (value === '1845-01-01' ? '1845-01-01 → 1800-01-01 (viceversa)' : value === '1800-01-01' ? '1800-01-01 → 1845-01-01 (viceversa)' : 'Variable 96: 1845-01-01 ↔ 1800-01-01') : '—'
+  if (code === 'Error669') return variable === 77 ? 'Variable 77 → 0' : '—'
+  if (code === 'Error670') return variable === 77 ? 'Variable 77 → 1' : '—'
+  if (code === 'Error379') return 'Variables 35, 49, 50, 56, 58, 59, 60 y 61 → valores definidos por la regla'
+  if (code === 'Error503') return 'Variable 52 toma la fecha de variable 29 cuando variable 16 = 4 o 5'
+  if (code === 'Error524' || code === 'Error525') return 'Ajustar variable relacionada con fecha 29 según la regla'
+  if (code === 'Error528' || code === 'Error529') return 'Ajustar variable relacionada con fecha 29 según la regla'
+  if (code === 'Error550') return 'Variables 27/28/40/62/63 según fecha 29 y edad'
+  if (['Error560', 'Error564', 'Error568', 'Error572'].includes(code)) return 'Variables 43-46 y 52 según fecha 29 y edad'
+  if (code === 'Error639') return 'Variables 103/104: 998 ↔ 1800-01-01 y 0 ↔ 1845-01-01 según regla de edad'
+  if (code === 'Error634' || code === 'STRUCT011') return 'Omitir error'
+  if (code === 'Warning674' || code === 'Warning675') return 'No modificar automáticamente'
+  if (code === 'Error635' || code === 'Error678') return 'Ajustar formato del valor según línea (ceros iniciales / 12 ceros)'
+  if (code === 'Error150') return 'Variable 96 toma el valor de variable 29'
+  return '—'
+}
+
 async function correctItem(item) {
   if (!validation.value || !canCorrect(item) || correctionLoading.value) return
   if (!window.confirm(`Convertir el valor de la línea ${item.line}, variable ${item.variable}, de ${item.value} a número decimal exacto?`)) return
@@ -147,10 +190,30 @@ onUnmounted(stopPolling)
     <section class="card upload-card"><div class="section-heading"><div><h2>Validar archivo</h2><p class="muted">Anexo Técnico 1 · Registro por persona (RPED)</p></div><span v-if="file" class="file-size">{{ formatBytes(file.size) }}</span></div><label class="dropzone" :class="{ dragging }" @dragover.prevent="dragging = true" @dragleave.prevent="dragging = false" @drop.prevent="onDrop"><input type="file" accept=".txt,text/plain" @change="onInput" /><span class="upload-icon">↑</span><strong>{{ file ? file.name : 'Seleccione o arrastre un archivo TXT' }}</strong><span>Máximo 50 MB · contenido delimitado por |</span></label><div class="status" :class="{ success: validation?.status === 'COMPLETED' && validation?.error_count === 0, danger: errorMessage }">{{ status }}</div><div v-if="validation && (validation.status === 'QUEUED' || validation.status === 'PROCESSING')" class="progress-box"><div class="progress-bar"><span :style="{ width: `${validation.progress || 0}%` }"></span></div><small>Procesamiento en segundo plano · {{ validation.progress || 0 }}%</small></div><div v-if="errorMessage" class="alert danger-box">{{ errorMessage }}</div><div v-if="correctionMessage" class="alert success-box">{{ correctionMessage }}</div><div class="actions"><button class="primary" :disabled="!file || loading" @click="validateFile">{{ loading ? 'Procesando...' : 'Iniciar validación' }}</button><button v-if="validation?.status === 'COMPLETED'" class="secondary" @click="exportReport">Descargar reporte CSV</button><button v-if="validation?.status === 'COMPLETED' && validation?.error_count > 0" class="auto-correct-btn" :disabled="correctionLoading" @click="correctAutomatically">{{ correctionLoading ? 'Corrigiendo...' : '🔧 Corregir automáticamente' }}</button></div></section>
     <section v-if="validation?.status === 'COMPLETED'" class="metrics"><article class="card metric"><span>Registros</span><strong>{{ validation.records }}</strong></article><article class="card metric"><span>Errores</span><strong class="danger-text">{{ validation.error_count }}</strong></article><article class="card metric"><span>Advertencias</span><strong>{{ validation.warning_count }}</strong></article><article class="card metric"><span>Reglas ejecutadas</span><strong>{{ validation.rules_loaded }}</strong></article></section>
     <section class="card history-card"><div class="section-heading"><div><h2>Historial de validaciones</h2><p class="muted">Últimas 50 validaciones procesadas.</p></div><div class="actions"><button class="secondary small" :disabled="historyLoading" @click="loadHistory">{{ historyLoading ? 'Actualizando...' : 'Actualizar' }}</button><button class="secondary small" :disabled="deleteLoading" @click="deleteAllRecords">{{ deleteLoading ? 'Eliminando...' : 'Eliminar registros' }}</button></div></div><div v-if="history.length" class="history-list"><button v-for="run in history" :key="run.id" class="history-item" :class="{ selected: selectedRunId === run.id }" @click="openRun(run.id)"><span class="history-main"><strong>{{ run.filename }}</strong><small>{{ formatDate(run.validated_at || run.created_at) }} · {{ formatBytes(run.size_bytes) }}</small></span><span class="history-stats"><b>{{ run.records }}</b> registros <span class="status-mini" :class="run.status.toLowerCase()">{{ run.status }}</span><span class="danger-text">{{ run.error_count }} errores</span><span>{{ run.warning_count }} advertencias</span></span></button></div><div v-else class="empty-state">Todavía no hay validaciones guardadas.</div></section>
-    <section v-if="validation?.status === 'COMPLETED'" class="card results-card"><div class="section-heading results-heading"><div><h2>Resultados profesionales</h2><p class="muted">{{ pageLabel }} hallazgos · página {{ resultsPage }} de {{ totalPages }}.</p></div><span class="valid-state" :class="validation.error_count === 0 ? 'ok' : 'bad'">{{ validation.error_count === 0 ? 'SIN ERRORES' : 'REQUIERE CORRECCIÓN' }}</span></div>
+    <section v-if="validation?.status === 'COMPLETED'" class="card results-card">
+      <div class="section-heading results-heading"><div><h2>Resultados profesionales</h2><p class="muted">{{ pageLabel }} hallazgos · página {{ resultsPage }} de {{ totalPages }}.</p></div><span class="valid-state" :class="validation.error_count === 0 ? 'ok' : 'bad'">{{ validation.error_count === 0 ? 'SIN ERRORES' : 'REQUIERE CORRECCIÓN' }}</span></div>
       <div v-if="filteredSummary.length" class="summary-grid"><article v-for="item in filteredSummary" :key="`${item.code}-${item.severity}`" class="summary-item"><strong>{{ item.code }}</strong><span>{{ item.count }} caso(s)</span><small>{{ item.severity }}</small></article></div>
       <div class="filters"><select v-model="severityFilter"><option value="ALL">Todas las severidades</option><option value="ERROR">Errores</option><option value="WARNING">Advertencias</option></select><input v-model="codeFilter" type="search" placeholder="Código, ej. Error305" @keyup.enter="applyFilters" /><input v-model="variableFilter" type="search" placeholder="Variable" @keyup.enter="applyFilters" /><input v-model="lineFilter" type="search" placeholder="Línea" @keyup.enter="applyFilters" /><button class="secondary small" :disabled="resultsLoading" @click="applyFilters">{{ resultsLoading ? 'Consultando...' : 'Aplicar filtros' }}</button></div>
-      <div v-if="resultsLoading" class="empty-state">Cargando resultados...</div><div v-else-if="results.length" class="table-wrap"><table><thead><tr><th>Código</th><th>Severidad</th><th>Línea</th><th>Variable</th><th>Edad</th><th>Mensaje</th><th>Valor</th><th>Acción</th></tr></thead><tbody><tr v-for="(item, index) in results" :key="`${item.code}-${item.line}-${index}`"><td><code>{{ item.code }}</code></td><td><span class="severity" :class="item.severity.toLowerCase()">{{ item.severity }}</span></td><td>{{ item.line ?? '—' }}</td><td>{{ item.variable ?? '—' }}</td><td>{{ item.age !== null && item.age !== undefined ? `${item.age} años` : '—' }}</td><td>{{ item.message }}</td><td class="value-cell">{{ item.value ?? '—' }}</td><td><button v-if="canCorrect(item)" class="correct-btn" :disabled="correctionLoading" @click="correctItem(item)">{{ correctionLoading ? 'Generando...' : 'Corregir' }}</button><span v-else class="muted">Manual</span></td></tr></tbody></table></div><div v-else class="empty-state">No hay hallazgos con los filtros seleccionados.</div>
+      <div v-if="resultsLoading" class="empty-state">Cargando resultados...</div>
+      <div v-else-if="results.length" class="table-wrap">
+        <table>
+          <thead><tr><th>Código</th><th>Severidad</th><th>Línea</th><th>Variable</th><th>Edad</th><th>Mensaje</th><th>Valor actual</th><th>Cambio propuesto</th><th>Acción</th></tr></thead>
+          <tbody>
+            <tr v-for="(item, index) in results" :key="`${item.code}-${item.line}-${index}`">
+              <td><code>{{ item.code }}</code></td>
+              <td><span class="severity" :class="item.severity.toLowerCase()">{{ item.severity }}</span></td>
+              <td>{{ item.line ?? '—' }}</td>
+              <td>{{ item.variable ?? '—' }}</td>
+              <td>{{ item.age !== null && item.age !== undefined ? `${item.age} años` : '—' }}</td>
+              <td>{{ item.message }}</td>
+              <td class="value-cell">{{ item.value ?? '—' }}</td>
+              <td class="change-cell"><strong v-if="proposedChange(item) !== '—'">{{ proposedChange(item) }}</strong><span v-else class="muted">Sin corrección parametrizada</span></td>
+              <td><button v-if="canCorrect(item)" class="correct-btn" :disabled="correctionLoading" @click="correctItem(item)">{{ correctionLoading ? 'Generando...' : 'Corregir' }}</button><span v-else class="muted">Manual</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div v-else class="empty-state">No hay hallazgos con los filtros seleccionados.</div>
       <div v-if="resultsTotal" class="pagination"><button class="secondary small" :disabled="resultsPage <= 1 || resultsLoading" @click="goPage(resultsPage - 1)">Anterior</button><span>Página {{ resultsPage }} de {{ totalPages }}</span><button class="secondary small" :disabled="resultsPage >= totalPages || resultsLoading" @click="goPage(resultsPage + 1)">Siguiente</button></div>
     </section>
   </main>
