@@ -10,6 +10,7 @@ use App\Domain\Res202\Validation\RpedCatalogLoader;
 use App\Domain\Res202\Validation\RpedRuleCatalog;
 use App\Domain\Res202\Validation\RpedValidator;
 use App\Models\ValidationRun;
+use DateTimeImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -34,6 +35,7 @@ final class AutomaticCorrectionController
             $corrections = [];
             $seen = [];
             $error536 = [];
+            $error638 = [];
 
             foreach (($validationRun->results ?? []) as $item) {
                 $code = (string) ($item['code'] ?? '');
@@ -65,6 +67,14 @@ final class AutomaticCorrectionController
                     continue;
                 }
 
+                // Error638 depende simultáneamente de la edad y de las variables
+                // 103/104. Se aplica directamente para evitar que otra regla
+                // genérica invierta la pareja de valores después de corregirla.
+                if ($code === 'Error638' && $variable === 103) {
+                    $error638[] = ['code' => $code, 'line' => $line, 'variable' => 103];
+                    continue;
+                }
+
                 $key = $line . '|' . $variable . '|' . $action;
                 if (isset($seen[$key])) {
                     continue;
@@ -79,7 +89,7 @@ final class AutomaticCorrectionController
                 ];
             }
 
-            if ($corrections === [] && $error536 === []) {
+            if ($corrections === [] && $error536 === [] && $error638 === []) {
                 return response()->json([
                     'message' => 'No se encontraron correcciones automáticas seguras para esta validación.',
                     'changes' => [],
@@ -94,6 +104,7 @@ final class AutomaticCorrectionController
             }
 
             $source = Storage::disk('local')->get($validationRun->source_path);
+            $changes638 = [];
 
             // Aplicar Error536 directamente sobre el archivo fuente para
             // garantizar 0 -> 21, sin posibilidad de invertir el valor.
@@ -121,8 +132,68 @@ final class AutomaticCorrectionController
                 }
             }
 
+            // Error638: relación exacta entre edad, fecha de toma (103) y
+            // resultado de hemoglobina (104).
+            foreach ($error638 as $item) {
+                $lines = preg_split('/\r\n|\n|\r/', $source) ?: [];
+                $index = $item['line'] - 1;
+                if (!isset($lines[$index])) {
+                    continue;
+                }
+
+                $fields = explode('|', $lines[$index]);
+                if (!array_key_exists(9, $fields) || !array_key_exists(103, $fields) || !array_key_exists(104, $fields)) {
+                    continue;
+                }
+
+                $control = isset($lines[0]) ? explode('|', $lines[0]) : [];
+                $cutoffDate = (($control[0] ?? '') === '1') ? ($control[3] ?? null) : null;
+                $ageMonths = $this->ageMonthsAtCutoff((string) $fields[9], (string) $cutoffDate);
+                if ($ageMonths < 0) {
+                    continue;
+                }
+
+                $date103 = (string) $fields[103];
+                $result104 = (string) $fields[104];
+                $inAgeRange = $ageMonths >= 120 && $ageMonths <= 204;
+
+                if (!$inAgeRange) {
+                    $newValues = [103 => '1845-01-01', 104 => '0'];
+                } elseif ($date103 === '1845-01-01') {
+                    $newValues = [103 => '1800-01-01', 104 => '998'];
+                } elseif ($date103 === '1800-01-01') {
+                    $newValues = [104 => '998'];
+                } elseif ($this->isRealDate($date103)) {
+                    // Una fecha real debe conservarse dentro del rango. Si el
+                    // resultado es 0/998 no es seguro inventar un resultado de
+                    // laboratorio; el hallazgo queda para corrección manual.
+                    $newValues = [];
+                } else {
+                    $newValues = [];
+                }
+
+                foreach ($newValues as $targetVariable => $newValue) {
+                    $oldValue = (string) $fields[$targetVariable];
+                    if ($oldValue === $newValue) {
+                        continue;
+                    }
+                    $fields[$targetVariable] = $newValue;
+                    $changes638[] = [
+                        'code' => 'Error638',
+                        'line' => $item['line'],
+                        'variable' => $targetVariable,
+                        'action' => 'correct_error_638',
+                        'old_value' => $oldValue,
+                        'new_value' => $newValue,
+                    ];
+                }
+
+                $lines[$index] = implode('|', $fields);
+                $source = implode("\r\n", $lines);
+            }
+
             $result = $this->service->apply($source, $corrections);
-            $changes = array_merge($changes536 ?? [], $result['changes']);
+            $changes = array_merge($changes536 ?? [], $changes638, $result['changes']);
             $correctedContent = $result['content'];
 
             $variables = RpedCatalogLoader::variables(base_path('../database/catalog/variables_rped.csv'));
@@ -186,5 +257,31 @@ final class AutomaticCorrectionController
                 'detail' => config('app.debug') ? $exception->getMessage() : null,
             ], 422);
         }
+    }
+
+    private function ageMonthsAtCutoff(string $birthValue, ?string $cutoffValue): int
+    {
+        if ($cutoffValue === null || !$this->isRealDate($birthValue) || !$this->isRealDate($cutoffValue)) {
+            return -1;
+        }
+
+        $birth = DateTimeImmutable::createFromFormat('!Y-m-d', $birthValue);
+        $cutoff = DateTimeImmutable::createFromFormat('!Y-m-d', $cutoffValue);
+        if ($birth === false || $cutoff === false || $birth > $cutoff) {
+            return -1;
+        }
+
+        $diff = $birth->diff($cutoff);
+        return ($diff->y * 12) + $diff->m;
+    }
+
+    private function isRealDate(string $value): bool
+    {
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return false;
+        }
+
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+        return $date !== false && $date->format('Y-m-d') === $value && $value > '1900-01-01';
     }
 }
