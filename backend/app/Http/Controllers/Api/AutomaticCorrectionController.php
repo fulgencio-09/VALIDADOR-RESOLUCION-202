@@ -55,7 +55,11 @@ final class AutomaticCorrectionController
                     continue;
                 }
 
-                $key = $code . '|' . $line . '|' . $variable . '|' . $action;
+                // Dos errores distintos pueden apuntar a la misma variable y usar
+                // exactamente la misma acción (por ejemplo Error082 y Error621
+                // sobre la variable 93). Una corrección bidireccional no debe
+                // ejecutarse dos veces porque la segunda ejecución desharía la primera.
+                $key = $line . '|' . $variable . '|' . $action;
                 if (isset($seen[$key])) {
                     continue;
                 }
