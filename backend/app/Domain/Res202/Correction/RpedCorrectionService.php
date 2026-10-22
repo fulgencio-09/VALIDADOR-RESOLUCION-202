@@ -32,11 +32,16 @@ final class RpedCorrectionService
 
             $fields = explode('|', $lines[$line - 1]);
 
+            $control = isset($lines[0]) ? explode('|', $lines[0]) : [];
+            $cutoffDate = (($control[0] ?? '') === '1')
+                ? ($control[3] ?? null)
+                : null;
+
             if ($action === 'omit_error' || $action === 'manual') {
                 continue;
             }
 
-            $updates = $this->updatesForAction($action, $fields, $line, $variable);
+            $updates = $this->updatesForAction($action, $fields, $line, $variable, $cutoffDate);
 
             foreach ($updates as $targetVariable => $newValue) {
                 $targetVariable = (int) $targetVariable;
@@ -69,8 +74,13 @@ final class RpedCorrectionService
         return ['content' => implode("\r\n", $lines), 'changes' => $changes];
     }
 
-    private function updatesForAction(string $action, array $fields, int $line, int $variable): array
-    {
+    private function updatesForAction(
+        string $action,
+        array $fields,
+        int $line,
+        int $variable,
+        ?string $cutoffDate = null
+    ): array {
         return match ($action) {
             'scientific_notation_to_integer' => [
                 $variable => $this->scientificToInteger((string) ($fields[$variable] ?? '')),
@@ -105,7 +115,7 @@ final class RpedCorrectionService
             'set_variable_27_21_if_29_1800' => $this->setVariableTo21If29Is1800($fields, 27, $line),
             'correct_error_528' => $this->correctError528($fields, $line),
             'set_variable_28_21_if_29_1800' => $this->setVariableTo21If29Is1800($fields, 28, $line),
-            'correct_error_550' => $this->correctError550($fields, $line),
+            'correct_error_550' => $this->correctError550($fields, $line, $cutoffDate),
             'correct_child_development_43_46' => $this->correctChildDevelopment($fields, $line),
             'normalize_variable_102_length' => [102 => $this->normalizeVariable102((string) ($fields[102] ?? ''))],
             'correct_error_639' => $this->correctError639($fields, $line),
@@ -217,34 +227,46 @@ final class RpedCorrectionService
         return [52 => $this->requireVariable($fields, 29, $line)];
     }
 
-    private function correctError550(array $fields, int $line): array
-    {
-        // Regla de la matriz: la fecha de referencia para Error550 es la variable 28.
-        // Si variable 29 = 1800-01-01, se fuerza 63 = 1800-01-01 y 40 = 21.
-        // En los demás casos, la edad se calcula usando nacimiento (9) contra variable 28.
-        $referenceDate = $this->requireVariable($fields, 28, $line);
-        $date29 = $this->requireVariable($fields, 29, $line);
-
-        if ($date29 === '1800-01-01') {
-            return [63 => '1800-01-01', 40 => '21'];
-        }
-
-        if (!$this->isRealDate($referenceDate)) {
-            throw new RuntimeException("La variable 28 de la línea {$line} debe contener una fecha válida para calcular la edad de Error550.");
+    private function correctError550(
+        array $fields,
+        int $line,
+        ?string $cutoffDate
+    ): array {
+        if ($cutoffDate === null || !$this->isRealDate($cutoffDate)) {
+            throw new RuntimeException(
+                "La fecha de corte del registro de control no es válida para calcular la edad de Error550 en la línea {$line}."
+            );
         }
 
         $birth = $this->requireVariable($fields, 9, $line);
-        $ageMonths = $this->ageMonthsAtCutoff($birth, $referenceDate);
+
+        if (!$this->isRealDate($birth)) {
+            throw new RuntimeException(
+                "La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad de Error550."
+            );
+        }
+
+        $ageMonths = $this->ageMonthsAtCutoff($birth, $cutoffDate);
 
         if ($ageMonths < 0) {
-            throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad de Error550.");
+            throw new RuntimeException(
+                "No fue posible calcular la edad de la línea {$line} para Error550."
+            );
         }
 
-        if ($ageMonths <= 144) {
-            return [63 => '1800-01-01', 40 => '21'];
+        // Menores o iguales a 12 años.
+        if ($ageMonths < 156) {
+            return [
+                40 => '21',
+                63 => '1800-01-01',
+            ];
         }
 
-        return [63 => '1845-01-01', 40 => '0'];
+        // 13 años o más.
+        return [
+            40 => '0',
+            63 => '1845-01-01',
+        ];
     }
 
     private function correctChildDevelopment(array $fields, int $line): array
