@@ -145,26 +145,30 @@ final class RpedCorrectionService
         $date72 = $this->requireVariable($fields, 72, $line);
         $result92 = $this->requireVariable($fields, 92, $line);
 
+        // El resultado 998 significa "no aplica" y obliga a que la fecha 72
+        // también quede como 1800-01-01, aunque actualmente tenga una fecha real.
+        if ($result92 === '998') {
+            return $date72 === '1800-01-01' ? [] : [72 => '1800-01-01'];
+        }
+
+        // El resultado 0 obliga a que la fecha 72 sea 1845-01-01.
+        if ($result92 === '0') {
+            return $date72 === '1845-01-01' ? [] : [72 => '1845-01-01'];
+        }
+
+        // Si la fecha 72 ya es un valor especial, el resultado debe corresponder.
         if ($date72 === '1800-01-01') {
-            return $result92 === '998' ? [] : [92 => '998'];
+            return [92 => '998'];
         }
 
         if ($date72 === '1845-01-01') {
-            return $result92 === '0' ? [] : [92 => '0'];
+            return [92 => '0'];
         }
 
         if ($this->isRealDate($date72)) {
-            // Una fecha real exige un resultado real. No se inventa el resultado
-            // del laboratorio si actualmente es 0 o 998; se deja para validación.
-            return ($result92 === '0' || $result92 === '998') ? [] : [];
-        }
-
-        if ($result92 === '998') {
-            return [72 => '1800-01-01'];
-        }
-
-        if ($result92 === '0') {
-            return [72 => '1845-01-01'];
+            // Una fecha real requiere un resultado real diferente de 0 y 998.
+            // No se inventa un resultado de laboratorio.
+            return [];
         }
 
         throw new RuntimeException("Las variables 72 y 92 de la línea {$line} no contienen una combinación válida.");
