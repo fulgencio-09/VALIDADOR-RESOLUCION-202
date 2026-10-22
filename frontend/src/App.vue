@@ -146,6 +146,7 @@ function proposedChange(item) {
   if (code === 'Error528' || code === 'Error529') return 'Ajustar variable relacionada con fecha 29 según la regla'
   if (code === 'Error550') return 'Variables 27/28/40/62/63 según fecha 29 y edad'
   if (['Error560', 'Error564', 'Error568', 'Error572'].includes(code)) return 'Variables 43-46 y 52 según fecha 29 y edad'
+  if (code === 'Error638') return variable === 103 ? '103: 1845-01-01 → 1800-01-01; 104 → 998' : '—'
   if (code === 'Error639') return 'Variables 103/104: 998 ↔ 1800-01-01 y 0 ↔ 1845-01-01 según regla de edad'
   if (code === 'Error634' || code === 'STRUCT011') return 'Omitir error'
   if (code === 'Warning674' || code === 'Warning675') return 'No modificar automáticamente'
