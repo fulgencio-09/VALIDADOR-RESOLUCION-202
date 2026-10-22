@@ -154,8 +154,7 @@ final class AutomaticCorrectionController
                 }
 
                 $date103 = (string) $fields[103];
-                $result104 = (string) $fields[104];
-                $inAgeRange = $ageMonths >= 120 && $ageMonths <= 204;
+                $inAgeRange = $ageMonths >= 120 && $ageMonths < 216;
 
                 if (!$inAgeRange) {
                     $newValues = [103 => '1845-01-01', 104 => '0'];
