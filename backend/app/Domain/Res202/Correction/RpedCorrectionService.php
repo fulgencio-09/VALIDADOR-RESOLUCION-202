@@ -259,19 +259,23 @@ final class RpedCorrectionService
 
     private function correctError550(array $fields, int $line): array
     {
-        $cutoff = $this->requireVariable($fields, 29, $line);
+        // Error550 se relaciona con el resultado VALE (variable 40) y su fecha (variable 63).
+        // La edad se calcula con la fecha de corte del registro de control, variable 3,
+        // no con la fecha del peso de la variable 29.
         $birth = $this->requireVariable($fields, 9, $line);
+        $cutoff = $this->requireVariable($fields, 3, $line);
 
         if (!$this->isRealDate($cutoff)) {
-            throw new RuntimeException("La variable 29 de la línea {$line} debe ser una fecha válida para calcular la edad de Error550.");
+            throw new RuntimeException("La variable 3 (fecha de corte) de la línea {$line} debe ser una fecha válida para calcular la edad de Error550.");
         }
 
         $ageMonths = $this->ageMonthsAtCutoff($birth, $cutoff);
 
         if ($ageMonths < 0) {
-            throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad.");
+            throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad al corte de Error550.");
         }
 
+        // Lineamientos: hasta 12 años, usar el comodín de fecha y 21 en resultado.
         if ($ageMonths <= 144) {
             return [63 => '1800-01-01', 40 => '21'];
         }
