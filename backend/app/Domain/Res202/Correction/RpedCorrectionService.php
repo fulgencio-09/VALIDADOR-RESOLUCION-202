@@ -78,7 +78,6 @@ final class RpedCorrectionService
             'set_hemoglobin_result_998' => [104 => '998'],
             'set_ldl_date_from_hemoglobin' => [72 => $this->setLdlDateFromHemoglobin($fields, $line)],
             'set_variable_90_from_variable_2' => [90 => $this->setVariable90FromVariable2($fields, $line)],
-
             'copy_variable_29_to_62' => [62 => $this->copyVariable29($fields, 62, $line)],
             'copy_variable_29_to_63' => [63 => $this->copyVariable29($fields, 63, $line)],
             'copy_variable_29_to_76' => [76 => $this->copyVariable29($fields, 76, $line)],
@@ -87,7 +86,6 @@ final class RpedCorrectionService
             'copy_variable_29_to_103' => [103 => $this->copyVariable29($fields, 103, $line)],
             'copy_variable_29_to_105' => [105 => $this->copyVariable29($fields, 105, $line)],
             'copy_variable_29_to_96' => [96 => $this->copyVariable29($fields, 96, $line)],
-
             'set_variable_71_one' => [71 => '1'],
             'set_variable_94_zero' => [94 => '0'],
             'set_variable_14_21' => [14 => '21'],
@@ -100,30 +98,17 @@ final class RpedCorrectionService
             'set_variable_93_1800' => [93 => '1800-01-01'],
             'set_variable_77_zero' => [77 => '0'],
             'set_variable_77_one' => [77 => '1'],
-
             'correct_error_328' => $this->correctError328($fields, $line),
-            'correct_error_379' => [
-                35 => '21',
-                49 => '1800-01-01',
-                50 => '1800-01-01',
-                56 => '1800-01-01',
-                58 => '1800-01-01',
-                59 => '21',
-                60 => '21',
-                61 => '21',
-            ],
+            'correct_error_379' => [35 => '21', 49 => '1800-01-01', 50 => '1800-01-01', 56 => '1800-01-01', 58 => '1800-01-01', 59 => '21', 60 => '21', 61 => '21'],
             'set_variable_52_from_29_when_16_4_5' => $this->setVariable52From29When16Is45($fields, $line),
-
             'correct_error_524' => $this->correctError524($fields, $line),
             'set_variable_27_21_if_29_1800' => $this->setVariableTo21If29Is1800($fields, 27, $line),
             'correct_error_528' => $this->correctError528($fields, $line),
             'set_variable_28_21_if_29_1800' => $this->setVariableTo21If29Is1800($fields, 28, $line),
-
             'correct_error_550' => $this->correctError550($fields, $line),
             'correct_child_development_43_46' => $this->correctChildDevelopment($fields, $line),
             'normalize_variable_102_length' => [102 => $this->normalizeVariable102((string) ($fields[102] ?? ''))],
             'correct_error_639' => $this->correctError639($fields, $line),
-
             default => throw new RuntimeException("Acción de corrección no soportada: {$action}."),
         };
     }
@@ -133,13 +118,11 @@ final class RpedCorrectionService
         if (!preg_match('/^([0-9]+)(?:\.([0-9]+))?[eE]\+?([0-9]+)$/', $value, $matches)) {
             throw new RuntimeException("El valor '{$value}' no es una notación científica decimal soportada.");
         }
-
         $integer = $matches[1];
         $fraction = $matches[2] ?? '';
         $exponent = (int) $matches[3];
         $digits = $integer . $fraction;
         $decimalPosition = strlen($integer) + $exponent;
-
         if ($decimalPosition < strlen($digits)) {
             $tail = substr($digits, $decimalPosition);
             if (trim($tail, '0') !== '') {
@@ -149,41 +132,30 @@ final class RpedCorrectionService
         } else {
             $digits .= str_repeat('0', $decimalPosition - strlen($digits));
         }
-
         return ltrim($digits, '0') ?: '0';
     }
 
     private function setLdlDateFromHemoglobin(array $fields, int $line): string
     {
-        $value92 = $fields[92] ?? null;
-
-        return match ($value92) {
+        return match ($fields[92] ?? null) {
             '0' => '1845-01-01',
             '998' => '1800-01-01',
-            default => throw new RuntimeException(
-                "La variable 92 de la línea {$line} debe contener 0 o 998 para corregir automáticamente la variable 72."
-            ),
+            default => throw new RuntimeException("La variable 92 de la línea {$line} debe contener 0 o 998 para corregir automáticamente la variable 72."),
         };
     }
 
     private function setVariable90FromVariable2(array $fields, int $line): string
     {
         $value89 = $fields[89] ?? null;
-
         if ($value89 === null) {
             throw new RuntimeException("La variable 89 no existe en la línea {$line}.");
         }
-
         if ($value89 === '0' || $value89 === '999') {
-            throw new RuntimeException(
-                "La variable 89 de la línea {$line} debe ser diferente de 0 y 999 para aplicar Error021 automáticamente."
-            );
+            throw new RuntimeException("La variable 89 de la línea {$line} debe ser diferente de 0 y 999 para aplicar Error021 automáticamente.");
         }
-
         if (!array_key_exists(2, $fields)) {
             throw new RuntimeException("La variable 2 no existe en la línea {$line}.");
         }
-
         return (string) $fields[2];
     }
 
@@ -192,59 +164,48 @@ final class RpedCorrectionService
         if (!array_key_exists(29, $fields)) {
             throw new RuntimeException("La variable 29 no existe en la línea {$line}.");
         }
-
         if (!array_key_exists($targetVariable, $fields)) {
             throw new RuntimeException("La variable {$targetVariable} no existe en la línea {$line}.");
         }
-
         return (string) $fields[29];
     }
 
     private function correctError328(array $fields, int $line): array
     {
         $updates = [70 => '1'];
-
         if (in_array($fields[16] ?? null, ['4', '5'], true)) {
             $updates[52] = $this->requireVariable($fields, 29, $line);
         }
-
         return $updates;
     }
 
     private function correctError524(array $fields, int $line): array
     {
         $date29 = $this->requireVariable($fields, 29, $line);
-
         if ($date29 === '1800-01-01') {
             return [27 => '21'];
         }
-
         if ($this->isRealDate($date29)) {
             return [62 => $date29];
         }
-
         throw new RuntimeException("La variable 29 de la línea {$line} no contiene una fecha válida ni el comodín 1800-01-01.");
     }
 
     private function correctError528(array $fields, int $line): array
     {
         $date29 = $this->requireVariable($fields, 29, $line);
-
         if ($date29 === '1800-01-01') {
             return [28 => '21'];
         }
-
         if ($this->isRealDate($date29)) {
             return [62 => $date29];
         }
-
         throw new RuntimeException("La variable 29 de la línea {$line} no contiene una fecha válida ni el comodín 1800-01-01.");
     }
 
     private function setVariableTo21If29Is1800(array $fields, int $targetVariable, int $line): array
     {
         $date29 = $this->requireVariable($fields, 29, $line);
-
         return $date29 === '1800-01-01' ? [$targetVariable => '21'] : [];
     }
 
@@ -253,29 +214,32 @@ final class RpedCorrectionService
         if (!in_array($fields[16] ?? null, ['4', '5'], true)) {
             return [];
         }
-
         return [52 => $this->requireVariable($fields, 29, $line)];
     }
 
     private function correctError550(array $fields, int $line): array
     {
-        // Error550 se relaciona con el resultado VALE (variable 40) y su fecha (variable 63).
-        // La edad se calcula con la fecha de corte del registro de control, variable 3,
-        // no con la fecha del peso de la variable 29.
-        $birth = $this->requireVariable($fields, 9, $line);
-        $cutoff = $this->requireVariable($fields, 3, $line);
+        // Regla de la matriz: la fecha de referencia para Error550 es la variable 28.
+        // Si variable 29 = 1800-01-01, se fuerza 63 = 1800-01-01 y 40 = 21.
+        // En los demás casos, la edad se calcula usando nacimiento (9) contra variable 28.
+        $referenceDate = $this->requireVariable($fields, 28, $line);
+        $date29 = $this->requireVariable($fields, 29, $line);
 
-        if (!$this->isRealDate($cutoff)) {
-            throw new RuntimeException("La variable 3 (fecha de corte) de la línea {$line} debe ser una fecha válida para calcular la edad de Error550.");
+        if ($date29 === '1800-01-01') {
+            return [63 => '1800-01-01', 40 => '21'];
         }
 
-        $ageMonths = $this->ageMonthsAtCutoff($birth, $cutoff);
+        if (!$this->isRealDate($referenceDate)) {
+            throw new RuntimeException("La variable 28 de la línea {$line} debe contener una fecha válida para calcular la edad de Error550.");
+        }
+
+        $birth = $this->requireVariable($fields, 9, $line);
+        $ageMonths = $this->ageMonthsAtCutoff($birth, $referenceDate);
 
         if ($ageMonths < 0) {
-            throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad al corte de Error550.");
+            throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad de Error550.");
         }
 
-        // Lineamientos: hasta 12 años, usar el comodín de fecha y 21 en resultado.
         if ($ageMonths <= 144) {
             return [63 => '1800-01-01', 40 => '21'];
         }
@@ -286,26 +250,20 @@ final class RpedCorrectionService
     private function correctChildDevelopment(array $fields, int $line): array
     {
         $cutoff = $this->requireVariable($fields, 29, $line);
-
         if ($cutoff === '1800-01-01') {
             return [43 => '21', 44 => '21', 45 => '21', 46 => '21', 52 => '1800-01-01'];
         }
-
         if (!$this->isRealDate($cutoff)) {
             throw new RuntimeException("La variable 29 de la línea {$line} no contiene una fecha válida para Error560/564/568/572.");
         }
-
         $birth = $this->requireVariable($fields, 9, $line);
         $ageMonths = $this->ageMonthsAtCutoff($birth, $cutoff);
-
         if ($ageMonths < 0) {
             throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha válida para calcular la edad.");
         }
-
         if ($ageMonths > 84) {
             throw new RuntimeException("La edad de la línea {$line} supera los 7 años establecidos para esta corrección.");
         }
-
         return [43 => '5', 44 => '5', 45 => '5', 46 => '5', 52 => $cutoff];
     }
 
@@ -314,36 +272,24 @@ final class RpedCorrectionService
         if ($value === '0') {
             return str_repeat('0', 12);
         }
-
         if (preg_match('/^\d{11}$/', $value)) {
             return '0' . $value;
         }
-
         if (preg_match('/^\d{12}$/', $value)) {
             return $value;
         }
-
         return $value;
     }
 
     private function correctError639(array $fields, int $line): array
     {
         $value104 = $this->requireVariable($fields, 104, $line);
-
-        // Error639 se corrige a partir de la relación entre las variables 103 y 104.
-        // No se debe calcular la edad ni exigir que la variable 29 sea una fecha para
-        // aplicar esta corrección. La variable 104 determina el comodín que corresponde
-        // en la variable 103.
         if ($value104 === '0') {
             return [103 => '1845-01-01'];
         }
-
         if ($value104 === '998') {
             return [103 => '1800-01-01'];
         }
-
-        // Si 104 no es 0 ni 998, no existe un valor automático que podamos inventar
-        // para 103. Se deja sin cambio para que la validación de fecha determine el error.
         return [];
     }
 
@@ -352,7 +298,6 @@ final class RpedCorrectionService
         if (!array_key_exists($variable, $fields)) {
             throw new RuntimeException("La variable {$variable} no existe en la línea {$line}.");
         }
-
         return (string) $fields[$variable];
     }
 
@@ -361,16 +306,12 @@ final class RpedCorrectionService
         if (!$this->isRealDate($birthValue) || !$this->isRealDate($cutoffValue)) {
             return -1;
         }
-
         $birth = DateTimeImmutable::createFromFormat('!Y-m-d', $birthValue);
         $cutoff = DateTimeImmutable::createFromFormat('!Y-m-d', $cutoffValue);
-
         if ($birth === false || $cutoff === false || $birth > $cutoff) {
             return -1;
         }
-
         $diff = $birth->diff($cutoff);
-
         return ($diff->y * 12) + $diff->m;
     }
 
@@ -379,11 +320,7 @@ final class RpedCorrectionService
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
             return false;
         }
-
         $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
-
-        return $date !== false
-            && $date->format('Y-m-d') === $value
-            && $value > '1900-01-01';
+        return $date !== false && $date->format('Y-m-d') === $value && $value > '1900-01-01';
     }
 }
