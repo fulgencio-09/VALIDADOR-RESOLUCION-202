@@ -39,25 +39,27 @@ final class RpedBatchConsistencySourceRuleCatalog
             self::f('Error554',42,['all'=>[['field'=>110,'op'=>'in','values'=>array_slice($w,0,6)],['field'=>42,'op'=>'neq','value'=>'21']]]),
             self::f('Warning555',42,['all'=>[['field'=>9,'op'=>'gt','value'=>'1996-12-31'],['any'=>[['field'=>42,'op'=>'neq','value'=>'0'],['field'=>110,'op'=>'neq','value'=>'1845-01-01']]]]],'WARNING'),
             self::f('Error556',42,['all'=>[['field'=>110,'op'=>'eq','value'=>'1845-01-01'],['field'=>42,'op'=>'neq','value'=>'0']]]),
-            self::f('Error558',52,['all'=>[['field'=>43,'op'=>'in','values'=>['3','4','5']],['field'=>52,'op'=>'lte','value'=>'1900-01-01']]]),
+            // Para Error558/562/566/570, 1800-01-01 es el valor que debe corregirse a 1845-01-01.
+            // 1845-01-01 es el comodín de no aplica y no debe volver a generar el mismo error.
+            self::f('Error558',52,['all'=>[['field'=>43,'op'=>'in','values'=>['3','4','5']],['field'=>52,'op'=>'eq','value'=>'1800-01-01']]]),
             self::f('Error560',43,['any'=>[
                 ['all'=>[['field'=>43,'op'=>'in','values'=>['3','4','5','21']],['age_years'=>true,'op'=>'gte','value'=>'8']]],
                 ['all'=>[['field'=>43,'op'=>'eq','value'=>'0'],['age_years'=>true,'op'=>'lt','value'=>'8']]],
             ]]),
             self::f('Warning561',43,['all'=>[['field'=>52,'op'=>'not_in','values'=>array_slice($w,0,6)],['field'=>43,'op'=>'eq','value'=>'21'],['age_years'=>true,'op'=>'lt','value'=>'8']]],'WARNING'),
-            self::f('Error562',52,['all'=>[['field'=>44,'op'=>'in','values'=>['3','4','5']],['field'=>52,'op'=>'lte','value'=>'1900-01-01']]]),
+            self::f('Error562',52,['all'=>[['field'=>44,'op'=>'in','values'=>['3','4','5']],['field'=>52,'op'=>'eq','value'=>'1800-01-01']]]),
             self::f('Error564',44,['any'=>[
                 ['all'=>[['field'=>44,'op'=>'in','values'=>['3','4','5','21']],['age_years'=>true,'op'=>'gte','value'=>'8']]],
                 ['all'=>[['field'=>44,'op'=>'eq','value'=>'0'],['age_years'=>true,'op'=>'lt','value'=>'8']]],
             ]]),
             self::f('Warning565',44,['all'=>[['field'=>52,'op'=>'not_in','values'=>array_slice($w,0,6)],['field'=>44,'op'=>'eq','value'=>'21'],['age_years'=>true,'op'=>'lt','value'=>'8']]],'WARNING'),
-            self::f('Error566',52,['all'=>[['field'=>45,'op'=>'in','values'=>['3','4','5']],['field'=>52,'op'=>'lte','value'=>'1900-01-01']]]),
+            self::f('Error566',52,['all'=>[['field'=>45,'op'=>'in','values'=>['3','4','5']],['field'=>52,'op'=>'eq','value'=>'1800-01-01']]]),
             self::f('Error568',45,['any'=>[
                 ['all'=>[['field'=>45,'op'=>'in','values'=>['3','4','5','21']],['age_years'=>true,'op'=>'gte','value'=>'8']]],
                 ['all'=>[['field'=>45,'op'=>'eq','value'=>'0'],['age_years'=>true,'op'=>'lt','value'=>'8']]],
             ]]),
             self::f('Warning569',45,['all'=>[['field'=>52,'op'=>'not_in','values'=>array_slice($w,0,6)],['field'=>45,'op'=>'eq','value'=>'21'],['age_years'=>true,'op'=>'lt','value'=>'8']]],'WARNING'),
-            self::f('Error570',52,['all'=>[['field'=>46,'op'=>'in','values'=>['3','4','5']],['field'=>52,'op'=>'lte','value'=>'1900-01-01']]]),
+            self::f('Error570',52,['all'=>[['field'=>46,'op'=>'in','values'=>['3','4','5']],['field'=>52,'op'=>'eq','value'=>'1800-01-01']]]),
             self::f('Warning573',46,['all'=>[['field'=>52,'op'=>'not_in','values'=>array_slice($w,0,6)],['field'=>46,'op'=>'eq','value'=>'21'],['age_years'=>true,'op'=>'lt','value'=>'8']]],'WARNING'),
             self::f('Error575',47,['all'=>[['field'=>88,'op'=>'neq','value'=>'19'],['field'=>47,'op'=>'neq','value'=>'0']]]),
             self::f('Error578',65,['all'=>[['field'=>48,'op'=>'in','values'=>['4','5']],['field'=>65,'op'=>'lte','value'=>'1900-01-01']]]),
