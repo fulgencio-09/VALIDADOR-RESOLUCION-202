@@ -150,6 +150,36 @@ final class ValidationController
         }
     }
 
+    public function destroyAll(): JsonResponse
+    {
+        try {
+            $runs = ValidationRun::query()->get(['id', 'source_path', 'corrected_path']);
+            $deleted = $runs->count();
+
+            foreach ($runs as $run) {
+                $paths = array_values(array_filter([(string) ($run->source_path ?? ''), (string) ($run->corrected_path ?? '')]));
+                if ($paths !== []) {
+                    Storage::disk('local')->delete($paths);
+                }
+            }
+
+            ValidationRun::query()->delete();
+
+            return response()->json([
+                'message' => $deleted === 0
+                    ? 'No hay registros de validación para eliminar.'
+                    : "Se eliminaron {$deleted} registro(s) y sus archivos asociados.",
+                'deleted' => $deleted,
+            ]);
+        } catch (Throwable $exception) {
+            report($exception);
+            return response()->json([
+                'message' => 'No fue posible eliminar los registros de validación.',
+                'detail' => config('app.debug') ? $exception->getMessage() : null,
+            ], 500);
+        }
+    }
+
     public function downloadReport(ValidationRun $validationRun): StreamedResponse
     {
         $filename = 'reporte-res202-' . $validationRun->id . '.csv';
