@@ -46,6 +46,7 @@ final class RpedCorrectionService
         return match ($action) {
             'scientific_notation_to_integer' => [$variable => $this->scientificToInteger((string) ($fields[$variable] ?? ''))],
             'set_hemoglobin_result_998' => [104 => '998'],
+            'correct_error_638' => $this->correctError638($fields, $line),
             'set_ldl_date_from_hemoglobin' => $this->correctVariables72And92($fields, $line),
             'set_variable_90_from_variable_2' => [90 => $this->setVariable90FromVariable2($fields, $line)],
             'normalize_variable_90_toggle' => [90 => $this->toggleVariable90($fields, $line)],
@@ -99,6 +100,13 @@ final class RpedCorrectionService
         if ($decimalPosition < strlen($digits)) { $tail = substr($digits, $decimalPosition); if (trim($tail, '0') !== '') throw new RuntimeException("La conversión de '{$value}' produciría decimales y no se aplicó."); $digits = substr($digits, 0, $decimalPosition); }
         else $digits .= str_repeat('0', $decimalPosition - strlen($digits));
         return ltrim($digits, '0') ?: '0';
+    }
+
+    private function correctError638(array $fields, int $line): array
+    {
+        $date103 = $this->requireVariable($fields, 103, $line);
+        if ($date103 !== '1845-01-01') return [];
+        return [103 => '1800-01-01', 104 => '998'];
     }
 
     private function correctVariables72And92(array $fields, int $line): array
