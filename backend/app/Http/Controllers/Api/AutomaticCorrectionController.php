@@ -98,7 +98,7 @@ final class AutomaticCorrectionController
             Storage::disk('local')->put($path, $result['content']);
             $correctedHash = hash('sha256', $result['content']);
 
-            DB::transaction(function () use ($validationRun, $result, $path, $correctedHash): void {
+            DB::transaction(function () use ($validationRun, $result, $path, $correctedHash, $verification): void {
                 foreach ($result['changes'] as $change) {
                     DB::table('correction_history')->insert([
                         'validation_run_id' => $validationRun->id,
@@ -112,9 +112,23 @@ final class AutomaticCorrectionController
                     ]);
                 }
 
+                // El resultado visible de la validación pasa a ser el resultado
+                // de la revalidación del archivo corregido. Así la tabla no
+                // continúa mostrando los errores que ya fueron solucionados.
                 $validationRun->forceFill([
                     'corrected_path' => $path,
                     'corrected_hash' => $correctedHash,
+                    'status' => 'COMPLETED',
+                    'progress' => 100,
+                    'records' => $verification['records'],
+                    'processed_records' => $verification['records'],
+                    'total_records' => $verification['records'],
+                    'error_count' => $verification['errors'],
+                    'warning_count' => $verification['warnings'],
+                    'result_count' => count($verification['results']),
+                    'results' => $verification['results'],
+                    'validated_at' => now(),
+                    'completed_at' => now(),
                 ])->save();
             });
 
