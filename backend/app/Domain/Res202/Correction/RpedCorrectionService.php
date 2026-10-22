@@ -79,7 +79,7 @@ final class RpedCorrectionService
                 $variable => $this->scientificToInteger((string) ($fields[$variable] ?? '')),
             ],
             'set_hemoglobin_result_998' => [104 => '998'],
-            'set_ldl_date_from_hemoglobin' => [72 => $this->setLdlDateFromHemoglobin($fields, $line)],
+            'set_ldl_date_from_hemoglobin' => $this->correctVariables72And92($fields, $line),
             'set_variable_90_from_variable_2' => [90 => $this->setVariable90FromVariable2($fields, $line)],
             'copy_variable_29_to_62' => [62 => $this->copyVariable29($fields, 62, $line)],
             'correct_error_131' => $this->correctError131($fields, $line, $cutoffDate),
@@ -140,13 +140,34 @@ final class RpedCorrectionService
         return ltrim($digits, '0') ?: '0';
     }
 
-    private function setLdlDateFromHemoglobin(array $fields, int $line): string
+    private function correctVariables72And92(array $fields, int $line): array
     {
-        return match ($fields[92] ?? null) {
-            '0' => '1845-01-01',
-            '998' => '1800-01-01',
-            default => throw new RuntimeException("La variable 92 de la línea {$line} debe contener 0 o 998 para corregir automáticamente la variable 72."),
-        };
+        $date72 = $this->requireVariable($fields, 72, $line);
+        $result92 = $this->requireVariable($fields, 92, $line);
+
+        if ($date72 === '1800-01-01') {
+            return $result92 === '998' ? [] : [92 => '998'];
+        }
+
+        if ($date72 === '1845-01-01') {
+            return $result92 === '0' ? [] : [92 => '0'];
+        }
+
+        if ($this->isRealDate($date72)) {
+            // Una fecha real exige un resultado real. No se inventa el resultado
+            // del laboratorio si actualmente es 0 o 998; se deja para validación.
+            return ($result92 === '0' || $result92 === '998') ? [] : [];
+        }
+
+        if ($result92 === '998') {
+            return [72 => '1800-01-01'];
+        }
+
+        if ($result92 === '0') {
+            return [72 => '1845-01-01'];
+        }
+
+        throw new RuntimeException("Las variables 72 y 92 de la línea {$line} no contienen una combinación válida.");
     }
 
     private function setVariable90FromVariable2(array $fields, int $line): string
@@ -181,30 +202,23 @@ final class RpedCorrectionService
         if ($date29 !== '1800-01-01' && !$this->isRealDate($date29)) {
             throw new RuntimeException("La variable 29 de la línea {$line} no contiene una fecha válida ni el comodín 1800-01-01 para Error131.");
         }
-
         if ($cutoffDate === null || !$this->isRealDate($cutoffDate)) {
             throw new RuntimeException("La fecha de corte del registro de control no es válida para calcular la edad de Error131 en la línea {$line}.");
         }
-
         $birth = $this->requireVariable($fields, 9, $line);
         if (!$this->isRealDate($birth)) {
             throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad de Error131.");
         }
-
         $ageMonths = $this->ageMonthsAtCutoff($birth, $cutoffDate);
         if ($ageMonths < 0) {
             throw new RuntimeException("No fue posible calcular la edad de la línea {$line} para Error131.");
         }
-
-        // El anexo establece la valoración de agudeza visual a partir de los 3 años.
         if ($ageMonths < 36) {
             return [27 => '0', 28 => '0', 62 => '1845-01-01'];
         }
-
         if ($date29 === '1800-01-01') {
             return [27 => '21', 28 => '21', 62 => '1800-01-01'];
         }
-
         return [62 => $date29];
     }
 
