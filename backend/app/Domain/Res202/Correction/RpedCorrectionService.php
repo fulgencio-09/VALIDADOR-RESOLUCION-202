@@ -58,6 +58,7 @@ final class RpedCorrectionService
             'copy_variable_29_to_103' => [103 => $this->copyVariable29($fields, 103, $line)],
             'copy_variable_29_to_105' => [105 => $this->copyVariable29($fields, 105, $line)],
             'copy_variable_29_to_96' => [96 => $this->copyVariable29($fields, 96, $line)],
+            'toggle_variable_96' => [96 => $this->toggleVariable96($fields, $line)],
             'set_variable_71_one' => [71 => '1'],
             'toggle_variable_71' => [71 => $this->toggleVariable71($fields, $line)],
             'set_variable_94_zero' => [94 => '0'],
@@ -66,8 +67,11 @@ final class RpedCorrectionService
             'set_variable_53_1800' => [53 => '1800-01-01'],
             'toggle_variable_53' => [53 => $this->toggleVariable53($fields, $line)],
             'set_variable_54_21' => [54 => '21'],
+            'toggle_variable_54' => [54 => $this->toggleVariable54($fields, $line)],
             'set_variable_36_zero' => [36 => '0'],
+            'toggle_variable_36' => [36 => $this->toggleVariable36($fields, $line)],
             'set_variable_52_1845' => [52 => '1845-01-01'],
+            'toggle_variable_52' => [52 => $this->toggleVariable52($fields, $line)],
             'set_variable_76_1845' => $this->correctVariables76And102($fields, $line, $cutoffDate),
             'set_variable_93_1800' => $this->toggleVariable93($fields, $line),
             'set_variable_77_zero' => [77 => '0'],
@@ -130,7 +134,8 @@ final class RpedCorrectionService
         $value = $this->requireVariable($fields, 71, $line);
         if ($value === '1') return '0';
         if ($value === '0') return '1';
-        throw new RuntimeException("La variable 71 de la línea {$line} debe ser 0 o 1 para aplicar la corrección bidireccional.");
+        if ($value === '21') return '1';
+        throw new RuntimeException("La variable 71 de la línea {$line} debe ser 0, 1 o 21 para aplicar la corrección.");
     }
 
     private function toggleVariable53(array $fields, int $line): string
@@ -139,6 +144,38 @@ final class RpedCorrectionService
         if ($value === '1800-01-01') return '1845-01-01';
         if ($value === '1845-01-01') return '1800-01-01';
         throw new RuntimeException("La variable 53 de la línea {$line} debe ser 1800-01-01 o 1845-01-01 para aplicar la corrección bidireccional.");
+    }
+
+    private function toggleVariable54(array $fields, int $line): string
+    {
+        $value = $this->requireVariable($fields, 54, $line);
+        if ($value === '21') return '0';
+        if ($value === '0') return '21';
+        throw new RuntimeException("La variable 54 de la línea {$line} debe ser 0 o 21 para aplicar la corrección bidireccional.");
+    }
+
+    private function toggleVariable36(array $fields, int $line): string
+    {
+        $value = $this->requireVariable($fields, 36, $line);
+        if ($value === '0') return '21';
+        if ($value === '21') return '0';
+        throw new RuntimeException("La variable 36 de la línea {$line} debe ser 0 o 21 para aplicar la corrección bidireccional.");
+    }
+
+    private function toggleVariable52(array $fields, int $line): string
+    {
+        $value = $this->requireVariable($fields, 52, $line);
+        if ($value === '1845-01-01') return '1800-01-01';
+        if ($value === '1800-01-01') return '1845-01-01';
+        throw new RuntimeException("La variable 52 de la línea {$line} debe ser 1800-01-01 o 1845-01-01 para aplicar la corrección bidireccional.");
+    }
+
+    private function toggleVariable96(array $fields, int $line): string
+    {
+        $value = $this->requireVariable($fields, 96, $line);
+        if ($value === '1845-01-01') return '1800-01-01';
+        if ($value === '1800-01-01') return '1845-01-01';
+        throw new RuntimeException("La variable 96 de la línea {$line} debe ser 1800-01-01 o 1845-01-01 para aplicar la corrección bidireccional.");
     }
 
     private function toggleVariable93(array $fields, int $line): array
@@ -195,55 +232,28 @@ final class RpedCorrectionService
 
     private function correctError550(array $fields, int $line, ?string $cutoffDate): array
     {
-        if ($cutoffDate === null || !$this->isRealDate($cutoffDate)) {
-            throw new RuntimeException("La fecha de corte del registro de control no es válida para calcular la edad de Error550 en la línea {$line}.");
-        }
-
+        if ($cutoffDate === null || !$this->isRealDate($cutoffDate)) throw new RuntimeException("La fecha de corte del registro de control no es válida para calcular la edad de Error550 en la línea {$line}.");
         $birth = $this->requireVariable($fields, 9, $line);
-        if (!$this->isRealDate($birth)) {
-            throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad de Error550.");
-        }
-
+        if (!$this->isRealDate($birth)) throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad de Error550.");
         $ageMonths = $this->ageMonthsAtCutoff($birth, $cutoffDate);
-        if ($ageMonths < 0) {
-            throw new RuntimeException("No fue posible calcular la edad de la línea {$line} para Error550.");
-        }
-
+        if ($ageMonths < 0) throw new RuntimeException("No fue posible calcular la edad de la línea {$line} para Error550.");
         $date29 = $this->requireVariable($fields, 29, $line);
         $date62 = $this->requireVariable($fields, 62, $line);
         $updates = [];
-
-        // Las variables 27 y 28 no son fechas. Solo se modifican cuando
-        // la variable 29 no contiene una fecha real.
         if ($this->isRealDate($date29)) {
-            // Si 29 es una fecha real, 62 debe contener una fecha real.
-            // Cuando no la tenga, se copia 29 -> 62.
-            if (!$this->isRealDate($date62)) {
-                $updates[62] = $date29;
-            }
+            if (!$this->isRealDate($date62)) $updates[62] = $date29;
         } else {
-            // Si 29 no es una fecha válida, 62 conserva exactamente el valor
-            // de 29 y 27/28 se normalizan a 21.
-            $updates[62] = $date29;
-            $updates[27] = '21';
-            $updates[28] = '21';
+            $updates[62] = $date29; $updates[27] = '21'; $updates[28] = '21';
         }
-
-        // Regla de Error550 según edad al corte.
-        if ($ageMonths < 156) {
-            $updates[40] = '21';
-            $updates[63] = '1800-01-01';
-        } else {
-            $updates[40] = '0';
-            $updates[63] = '1845-01-01';
-        }
-
+        if ($ageMonths < 156) { $updates[40] = '21'; $updates[63] = '1800-01-01'; }
+        else { $updates[40] = '0'; $updates[63] = '1845-01-01'; }
         return $updates;
     }
 
     private function correctChildDevelopment(array $fields, int $line): array
     {
-        $cutoff = $this->requireVariable($fields, 29, $line); if ($cutoff === '1800-01-01') return [43 => '21', 44 => '21', 45 => '21', 46 => '21', 52 => '1800-01-01'];
+        $cutoff = $this->requireVariable($fields, 29, $line);
+        if ($cutoff === '1800-01-01') return [43 => '21', 44 => '21', 45 => '21', 46 => '21', 52 => '1800-01-01'];
         if (!$this->isRealDate($cutoff)) throw new RuntimeException("La variable 29 de la línea {$line} no contiene una fecha válida para Error560/564/568/572.");
         $birth = $this->requireVariable($fields, 9, $line); $ageMonths = $this->ageMonthsAtCutoff($birth, $cutoff); if ($ageMonths < 0) throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha válida para calcular la edad."); if ($ageMonths > 84) throw new RuntimeException("La edad de la línea {$line} supera los 7 años establecidos para esta corrección.");
         return [43 => '5', 44 => '5', 45 => '5', 46 => '5', 52 => $cutoff];
@@ -272,7 +282,14 @@ final class RpedCorrectionService
         if ($cutoffDate === null || !$this->isRealDate($cutoffDate)) throw new RuntimeException("La fecha de corte del registro de control no es válida para calcular la edad de Error639 en la línea {$line}.");
         $birth = $this->requireVariable($fields, 9, $line); if (!$this->isRealDate($birth)) throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad de Error639.");
         $ageMonths = $this->ageMonthsAtCutoff($birth, $cutoffDate); if ($ageMonths < 0) throw new RuntimeException("No fue posible calcular la edad de la línea {$line} para Error639.");
-        if ($ageMonths >= 120 && $ageMonths < 216) return [103 => '1800-01-01', 104 => '998']; return [103 => '1845-01-01', 104 => '0'];
+        $date103 = $this->requireVariable($fields, 103, $line); $result104 = $this->requireVariable($fields, 104, $line);
+        if ($ageMonths < 120 || $ageMonths >= 216) return [103 => '1845-01-01', 104 => '0'];
+        if ($result104 === '998') return [103 => '1800-01-01', 104 => '998'];
+        if ($result104 === '0') return [103 => '1845-01-01', 104 => '0'];
+        if ($date103 === '1800-01-01') return [104 => '998'];
+        if ($date103 === '1845-01-01') return [104 => '0'];
+        if ($this->isRealDate($date103)) return [];
+        throw new RuntimeException("Las variables 103 y 104 de la línea {$line} no contienen una combinación válida para Error639.");
     }
 
     private function applyWarningMatrixCorrection(array $fields, int $line, int $variable): array
