@@ -195,10 +195,50 @@ final class RpedCorrectionService
 
     private function correctError550(array $fields, int $line, ?string $cutoffDate): array
     {
-        if ($cutoffDate === null || !$this->isRealDate($cutoffDate)) throw new RuntimeException("La fecha de corte del registro de control no es válida para calcular la edad de Error550 en la línea {$line}.");
-        $birth = $this->requireVariable($fields, 9, $line); if (!$this->isRealDate($birth)) throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad de Error550.");
-        $ageMonths = $this->ageMonthsAtCutoff($birth, $cutoffDate); if ($ageMonths < 0) throw new RuntimeException("No fue posible calcular la edad de la línea {$line} para Error550.");
-        if ($ageMonths < 156) return [40 => '21', 63 => '1800-01-01']; return [40 => '0', 63 => '1845-01-01'];
+        if ($cutoffDate === null || !$this->isRealDate($cutoffDate)) {
+            throw new RuntimeException("La fecha de corte del registro de control no es válida para calcular la edad de Error550 en la línea {$line}.");
+        }
+
+        $birth = $this->requireVariable($fields, 9, $line);
+        if (!$this->isRealDate($birth)) {
+            throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad de Error550.");
+        }
+
+        $ageMonths = $this->ageMonthsAtCutoff($birth, $cutoffDate);
+        if ($ageMonths < 0) {
+            throw new RuntimeException("No fue posible calcular la edad de la línea {$line} para Error550.");
+        }
+
+        $date29 = $this->requireVariable($fields, 29, $line);
+        $date62 = $this->requireVariable($fields, 62, $line);
+        $updates = [];
+
+        // Las variables 27 y 28 no son fechas. Solo se modifican cuando
+        // la variable 29 no contiene una fecha real.
+        if ($this->isRealDate($date29)) {
+            // Si 29 es una fecha real, 62 debe contener una fecha real.
+            // Cuando no la tenga, se copia 29 -> 62.
+            if (!$this->isRealDate($date62)) {
+                $updates[62] = $date29;
+            }
+        } else {
+            // Si 29 no es una fecha válida, 62 conserva exactamente el valor
+            // de 29 y 27/28 se normalizan a 21.
+            $updates[62] = $date29;
+            $updates[27] = '21';
+            $updates[28] = '21';
+        }
+
+        // Regla de Error550 según edad al corte.
+        if ($ageMonths < 156) {
+            $updates[40] = '21';
+            $updates[63] = '1800-01-01';
+        } else {
+            $updates[40] = '0';
+            $updates[63] = '1845-01-01';
+        }
+
+        return $updates;
     }
 
     private function correctChildDevelopment(array $fields, int $line): array
