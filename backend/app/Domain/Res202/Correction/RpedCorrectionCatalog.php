@@ -59,8 +59,8 @@ final class RpedCorrectionCatalog
 
             'Error634' => ['action' => 'omit_error', 'label' => 'Omitir error', 'description' => 'La matriz indica omitir el error; no modifica el dato.', 'automatic' => false],
             'STRUCT011' => ['action' => 'omit_error', 'label' => 'Omitir error', 'description' => 'La matriz indica omitir el error; no modifica el dato.', 'automatic' => false],
-            'Warning674' => ['action' => 'manual', 'label' => 'Revisión manual', 'description' => 'La matriz contiene opciones de valor y una regla condicional, pero no determina un único valor automático para la variable 29.', 'automatic' => false],
-            'Warning675' => ['action' => 'manual', 'label' => 'Revisión manual', 'description' => 'La matriz contiene opciones de valor, pero no determina un único valor automático para la variable 31.', 'automatic' => false],
+            'Warning674' => ['action' => 'apply_warning_matrix_correction', 'label' => 'Aplicar corrección de Warning674', 'description' => 'Aplica el valor indicado en la columna G según la línea y la condición descrita en la matriz.', 'automatic' => true],
+            'Warning675' => ['action' => 'apply_warning_matrix_correction', 'label' => 'Aplicar corrección de Warning675', 'description' => 'Aplica el valor indicado en la columna G según la línea y la condición descrita en la matriz.', 'automatic' => true],
         ];
     }
 
