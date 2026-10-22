@@ -172,6 +172,12 @@ async function correctAutomatically() {
     correctionMessage.value = data.changes?.length
       ? `Corrección automática completada: ${data.changes.length} cambio(s). Revalidación: ${verification.error_count ?? 0} error(es) y ${verification.warning_count ?? 0} advertencia(s).`
       : 'No se encontraron correcciones automáticas seguras para esta validación.'
+
+    // El backend revalida y guarda los resultados corregidos. Recargamos
+    // inmediatamente la validación, el resumen y la tabla para no mostrar
+    // los errores anteriores después de aplicar la corrección.
+    await refreshRun(validation.value.id)
+
     if (data.download_url) window.open(data.download_url, '_blank', 'noopener,noreferrer')
   } catch (error) {
     errorMessage.value = error.response?.data?.message || 'No fue posible ejecutar las correcciones automáticas.'
