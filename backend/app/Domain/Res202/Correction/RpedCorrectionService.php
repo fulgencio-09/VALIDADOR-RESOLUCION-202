@@ -339,10 +339,42 @@ final class RpedCorrectionService
         if ($ageMonths < 0) {
             throw new RuntimeException("No fue posible calcular la edad de la línea {$line} para Error639.");
         }
-        if ($ageMonths >= 120 && $ageMonths < 216) {
-            return [103 => '1800-01-01', 104 => '998'];
+
+        // Fuera del rango estipulado para Error639, la pareja debe quedar siempre
+        // en el estado "no aplica": fecha 1845-01-01 y resultado 0.
+        if ($ageMonths < 120 || $ageMonths >= 216) {
+            return [103 => '1845-01-01', 104 => '0'];
         }
-        return [103 => '1845-01-01', 104 => '0'];
+
+        $date103 = $this->requireVariable($fields, 103, $line);
+        $result104 = $this->requireVariable($fields, 104, $line);
+
+        // Dentro del rango, el resultado 998 determina que la fecha sea 1800-01-01.
+        if ($result104 === '998') {
+            return $date103 === '1800-01-01' ? [] : [103 => '1800-01-01'];
+        }
+
+        // Dentro del rango, el resultado 0 determina que la fecha sea 1845-01-01.
+        if ($result104 === '0') {
+            return $date103 === '1845-01-01' ? [] : [103 => '1845-01-01'];
+        }
+
+        // Si la fecha ya es un valor especial, el resultado debe corresponder.
+        if ($date103 === '1800-01-01') {
+            return $result104 === '998' ? [] : [104 => '998'];
+        }
+
+        if ($date103 === '1845-01-01') {
+            return $result104 === '0' ? [] : [104 => '0'];
+        }
+
+        // Una fecha real solo es válida junto con un resultado real, es decir,
+        // diferente de 0 y 998. No se inventa un resultado de laboratorio.
+        if ($this->isRealDate($date103)) {
+            return [];
+        }
+
+        throw new RuntimeException("Las variables 103 y 104 de la línea {$line} no contienen una combinación válida para Error639.");
     }
 
     private function applyWarningMatrixCorrection(array $fields, int $line, int $variable): array
