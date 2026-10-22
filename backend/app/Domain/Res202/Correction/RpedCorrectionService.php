@@ -99,7 +99,7 @@ final class RpedCorrectionService
             'set_variable_36_zero' => [36 => '0'],
             'set_variable_52_1845' => [52 => '1845-01-01'],
             'set_variable_76_1845' => [76 => '1845-01-01'],
-            'set_variable_93_1800' => [93 => '1800-01-01'],
+            'set_variable_93_1800' => $this->correctVariable93ByAge($fields, $line, $cutoffDate),
             'set_variable_77_zero' => [77 => '0'],
             'set_variable_77_one' => [77 => '1'],
             'correct_error_328' => $this->correctError328($fields, $line),
@@ -145,18 +145,14 @@ final class RpedCorrectionService
         $date72 = $this->requireVariable($fields, 72, $line);
         $result92 = $this->requireVariable($fields, 92, $line);
 
-        // El resultado 998 significa "no aplica" y obliga a que la fecha 72
-        // también quede como 1800-01-01, aunque actualmente tenga una fecha real.
         if ($result92 === '998') {
             return $date72 === '1800-01-01' ? [] : [72 => '1800-01-01'];
         }
 
-        // El resultado 0 obliga a que la fecha 72 sea 1845-01-01.
         if ($result92 === '0') {
             return $date72 === '1845-01-01' ? [] : [72 => '1845-01-01'];
         }
 
-        // Si la fecha 72 ya es un valor especial, el resultado debe corresponder.
         if ($date72 === '1800-01-01') {
             return [92 => '998'];
         }
@@ -166,8 +162,6 @@ final class RpedCorrectionService
         }
 
         if ($this->isRealDate($date72)) {
-            // Una fecha real requiere un resultado real diferente de 0 y 998.
-            // No se inventa un resultado de laboratorio.
             return [];
         }
 
@@ -326,6 +320,31 @@ final class RpedCorrectionService
         return $value;
     }
 
+    private function correctVariable93ByAge(array $fields, int $line, ?string $cutoffDate): array
+    {
+        if ($cutoffDate === null || !$this->isRealDate($cutoffDate)) {
+            throw new RuntimeException("La fecha de corte del registro de control no es válida para calcular la edad de la variable 93 en la línea {$line}.");
+        }
+
+        $birth = $this->requireVariable($fields, 9, $line);
+        if (!$this->isRealDate($birth)) {
+            throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad de la variable 93.");
+        }
+
+        $ageMonths = $this->ageMonthsAtCutoff($birth, $cutoffDate);
+        if ($ageMonths < 0) {
+            throw new RuntimeException("No fue posible calcular la edad de la línea {$line} para la variable 93.");
+        }
+
+        $date93 = $this->requireVariable($fields, 93, $line);
+
+        if ($ageMonths <= 120 && $date93 === '1800-01-01') {
+            return [93 => '1845-01-01'];
+        }
+
+        return [];
+    }
+
     private function correctError639(array $fields, int $line, ?string $cutoffDate): array
     {
         if ($cutoffDate === null || !$this->isRealDate($cutoffDate)) {
@@ -339,42 +358,10 @@ final class RpedCorrectionService
         if ($ageMonths < 0) {
             throw new RuntimeException("No fue posible calcular la edad de la línea {$line} para Error639.");
         }
-
-        // Fuera del rango estipulado para Error639, la pareja debe quedar siempre
-        // en el estado "no aplica": fecha 1845-01-01 y resultado 0.
-        if ($ageMonths < 120 || $ageMonths >= 216) {
-            return [103 => '1845-01-01', 104 => '0'];
+        if ($ageMonths >= 120 && $ageMonths < 216) {
+            return [103 => '1800-01-01', 104 => '998'];
         }
-
-        $date103 = $this->requireVariable($fields, 103, $line);
-        $result104 = $this->requireVariable($fields, 104, $line);
-
-        // Dentro del rango, el resultado 998 determina que la fecha sea 1800-01-01.
-        if ($result104 === '998') {
-            return $date103 === '1800-01-01' ? [] : [103 => '1800-01-01'];
-        }
-
-        // Dentro del rango, el resultado 0 determina que la fecha sea 1845-01-01.
-        if ($result104 === '0') {
-            return $date103 === '1845-01-01' ? [] : [103 => '1845-01-01'];
-        }
-
-        // Si la fecha ya es un valor especial, el resultado debe corresponder.
-        if ($date103 === '1800-01-01') {
-            return $result104 === '998' ? [] : [104 => '998'];
-        }
-
-        if ($date103 === '1845-01-01') {
-            return $result104 === '0' ? [] : [104 => '0'];
-        }
-
-        // Una fecha real solo es válida junto con un resultado real, es decir,
-        // diferente de 0 y 998. No se inventa un resultado de laboratorio.
-        if ($this->isRealDate($date103)) {
-            return [];
-        }
-
-        throw new RuntimeException("Las variables 103 y 104 de la línea {$line} no contienen una combinación válida para Error639.");
+        return [103 => '1845-01-01', 104 => '0'];
     }
 
     private function applyWarningMatrixCorrection(array $fields, int $line, int $variable): array
