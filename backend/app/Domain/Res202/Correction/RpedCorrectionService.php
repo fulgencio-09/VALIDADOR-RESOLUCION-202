@@ -14,6 +14,9 @@ final class RpedCorrectionService
         $lines = preg_split('/\r\n|\n|\r/', $content) ?: [];
         $changes = [];
 
+        $control = isset($lines[0]) ? explode('|', $lines[0]) : [];
+        $cutoffDate = (($control[0] ?? '') === '1') ? ($control[3] ?? null) : null;
+
         foreach ($corrections as $correction) {
             $code = (string) ($correction['code'] ?? '');
             $line = (int) ($correction['line'] ?? 0);
@@ -31,11 +34,6 @@ final class RpedCorrectionService
             }
 
             $fields = explode('|', $lines[$line - 1]);
-
-            $control = isset($lines[0]) ? explode('|', $lines[0]) : [];
-            $cutoffDate = (($control[0] ?? '') === '1')
-                ? ($control[3] ?? null)
-                : null;
 
             if ($action === 'omit_error' || $action === 'manual') {
                 continue;
@@ -74,13 +72,8 @@ final class RpedCorrectionService
         return ['content' => implode("\r\n", $lines), 'changes' => $changes];
     }
 
-    private function updatesForAction(
-        string $action,
-        array $fields,
-        int $line,
-        int $variable,
-        ?string $cutoffDate = null
-    ): array {
+    private function updatesForAction(string $action, array $fields, int $line, int $variable, ?string $cutoffDate = null): array
+    {
         return match ($action) {
             'scientific_notation_to_integer' => [
                 $variable => $this->scientificToInteger((string) ($fields[$variable] ?? '')),
@@ -118,7 +111,8 @@ final class RpedCorrectionService
             'correct_error_550' => $this->correctError550($fields, $line, $cutoffDate),
             'correct_child_development_43_46' => $this->correctChildDevelopment($fields, $line),
             'normalize_variable_102_length' => [102 => $this->normalizeVariable102((string) ($fields[102] ?? ''))],
-            'correct_error_639' => $this->correctError639($fields, $line),
+            'correct_error_639' => $this->correctError639($fields, $line, $cutoffDate),
+            'apply_warning_matrix_correction' => $this->applyWarningMatrixCorrection($fields, $line, $variable),
             default => throw new RuntimeException("Acción de corrección no soportada: {$action}."),
         };
     }
@@ -227,46 +221,27 @@ final class RpedCorrectionService
         return [52 => $this->requireVariable($fields, 29, $line)];
     }
 
-    private function correctError550(
-        array $fields,
-        int $line,
-        ?string $cutoffDate
-    ): array {
+    private function correctError550(array $fields, int $line, ?string $cutoffDate): array
+    {
         if ($cutoffDate === null || !$this->isRealDate($cutoffDate)) {
-            throw new RuntimeException(
-                "La fecha de corte del registro de control no es válida para calcular la edad de Error550 en la línea {$line}."
-            );
+            throw new RuntimeException("La fecha de corte del registro de control no es válida para calcular la edad de Error550 en la línea {$line}.");
         }
 
         $birth = $this->requireVariable($fields, 9, $line);
-
         if (!$this->isRealDate($birth)) {
-            throw new RuntimeException(
-                "La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad de Error550."
-            );
+            throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad de Error550.");
         }
 
         $ageMonths = $this->ageMonthsAtCutoff($birth, $cutoffDate);
-
         if ($ageMonths < 0) {
-            throw new RuntimeException(
-                "No fue posible calcular la edad de la línea {$line} para Error550."
-            );
+            throw new RuntimeException("No fue posible calcular la edad de la línea {$line} para Error550.");
         }
 
-        // Menores o iguales a 12 años.
         if ($ageMonths < 156) {
-            return [
-                40 => '21',
-                63 => '1800-01-01',
-            ];
+            return [40 => '21', 63 => '1800-01-01'];
         }
 
-        // 13 años o más.
-        return [
-            40 => '0',
-            63 => '1845-01-01',
-        ];
+        return [40 => '0', 63 => '1845-01-01'];
     }
 
     private function correctChildDevelopment(array $fields, int $line): array
@@ -303,16 +278,40 @@ final class RpedCorrectionService
         return $value;
     }
 
-    private function correctError639(array $fields, int $line): array
+    private function correctError639(array $fields, int $line, ?string $cutoffDate): array
     {
-        $value104 = $this->requireVariable($fields, 104, $line);
-        if ($value104 === '0') {
-            return [103 => '1845-01-01'];
+        if ($cutoffDate === null || !$this->isRealDate($cutoffDate)) {
+            throw new RuntimeException("La fecha de corte del registro de control no es válida para calcular la edad de Error639 en la línea {$line}.");
         }
-        if ($value104 === '998') {
-            return [103 => '1800-01-01'];
+
+        $birth = $this->requireVariable($fields, 9, $line);
+        if (!$this->isRealDate($birth)) {
+            throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad de Error639.");
         }
-        return [];
+
+        $ageMonths = $this->ageMonthsAtCutoff($birth, $cutoffDate);
+        if ($ageMonths < 0) {
+            throw new RuntimeException("No fue posible calcular la edad de la línea {$line} para Error639.");
+        }
+
+        // La matriz indica población entre 10 y 17 años para el resultado 998.
+        if ($ageMonths >= 120 && $ageMonths < 216) {
+            return [103 => '1800-01-01', 104 => '998'];
+        }
+
+        return [103 => '1845-01-01', 104 => '0'];
+    }
+
+    private function applyWarningMatrixCorrection(array $fields, int $line, int $variable): array
+    {
+        return match ($line) {
+            679, 896 => $variable === 29 ? [29 => '0'] : ($variable === 31 ? [31 => '4'] : []),
+            682, 897 => $variable === 29 ? [29 => '5'] : ($variable === 31 ? [31 => '21'] : []),
+            898 => $variable === 29 && in_array($fields[16] ?? null, ['4', '5'], true)
+                ? [52 => $this->requireVariable($fields, 29, $line)]
+                : [],
+            default => [],
+        };
     }
 
     private function requireVariable(array $fields, int $variable, int $line): string
