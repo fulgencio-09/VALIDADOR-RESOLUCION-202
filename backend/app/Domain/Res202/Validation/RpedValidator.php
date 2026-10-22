@@ -53,6 +53,12 @@ final class RpedValidator
             $ageYears = $this->ageYearsAtCutoff($record[9] ?? null, $cutoffDate);
             $context = $cutoffDate !== null ? ['cutoff_date' => $cutoffDate] : [];
             foreach ($this->ruleEngine->validate($record, $rules, $context) as $result) {
+                // Todos los errores asociados a la variable 102 se omiten.
+                // La variable 102 no debe generar hallazgos ni correcciones automáticas.
+                if ((int) ($result['variable'] ?? -1) === 102) {
+                    continue;
+                }
+
                 // Error305 solo aplica cuando la edad está entre 10 y 59 años.
                 // Menor de 10 o mayor/igual a 60 no debe generar Error305.
                 if (($result['code'] ?? '') === 'Error305' && $ageMonths >= 0 && ($ageMonths < 120 || $ageMonths >= 720)) {
@@ -63,10 +69,20 @@ final class RpedValidator
                 $business[] = $result;
             }
             foreach ($this->copConsistencyValidator->validate($record, $line, $cutoffDate) as $result) {
+                if ((int) ($result['variable'] ?? -1) === 102) {
+                    continue;
+                }
                 $result['age'] = $ageYears;
                 $business[] = $result;
             }
         }
+
+        // También se omiten los hallazgos estructurales que estén asociados a la variable 102.
+        $structural = array_values(array_filter(
+            $structural,
+            static fn(array $result): bool => (int) ($result['variable'] ?? -1) !== 102
+        ));
+
         $results = array_merge($structural, $business);
         return [
             'valid' => $results === [],
