@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/health', [ValidationController::class, 'health']);
 Route::get('/validations', [ValidationController::class, 'index']);
 Route::post('/validations', [ValidationController::class, 'store']);
+Route::delete('/validations', [ValidationController::class, 'destroyAll']);
 Route::get('/validations/{validationRun}/status', [ValidationController::class, 'status']);
 Route::get('/validations/{validationRun}/results', [ValidationController::class, 'results']);
 Route::get('/validations/{validationRun}/summary', [ValidationController::class, 'summary']);
