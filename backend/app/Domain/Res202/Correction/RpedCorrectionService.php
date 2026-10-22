@@ -82,6 +82,7 @@ final class RpedCorrectionService
             'set_ldl_date_from_hemoglobin' => [72 => $this->setLdlDateFromHemoglobin($fields, $line)],
             'set_variable_90_from_variable_2' => [90 => $this->setVariable90FromVariable2($fields, $line)],
             'copy_variable_29_to_62' => [62 => $this->copyVariable29($fields, 62, $line)],
+            'correct_error_131' => $this->correctError131($fields, $line, $cutoffDate),
             'copy_variable_29_to_63' => [63 => $this->copyVariable29($fields, 63, $line)],
             'copy_variable_29_to_76' => [76 => $this->copyVariable29($fields, 76, $line)],
             'copy_variable_29_to_80' => [80 => $this->copyVariable29($fields, 80, $line)],
@@ -172,6 +173,39 @@ final class RpedCorrectionService
             throw new RuntimeException("La variable {$targetVariable} no existe en la línea {$line}.");
         }
         return (string) $fields[29];
+    }
+
+    private function correctError131(array $fields, int $line, ?string $cutoffDate): array
+    {
+        $date29 = $this->requireVariable($fields, 29, $line);
+        if ($date29 !== '1800-01-01' && !$this->isRealDate($date29)) {
+            throw new RuntimeException("La variable 29 de la línea {$line} no contiene una fecha válida ni el comodín 1800-01-01 para Error131.");
+        }
+
+        if ($cutoffDate === null || !$this->isRealDate($cutoffDate)) {
+            throw new RuntimeException("La fecha de corte del registro de control no es válida para calcular la edad de Error131 en la línea {$line}.");
+        }
+
+        $birth = $this->requireVariable($fields, 9, $line);
+        if (!$this->isRealDate($birth)) {
+            throw new RuntimeException("La variable 9 de la línea {$line} no contiene una fecha de nacimiento válida para calcular la edad de Error131.");
+        }
+
+        $ageMonths = $this->ageMonthsAtCutoff($birth, $cutoffDate);
+        if ($ageMonths < 0) {
+            throw new RuntimeException("No fue posible calcular la edad de la línea {$line} para Error131.");
+        }
+
+        // El anexo establece la valoración de agudeza visual a partir de los 3 años.
+        if ($ageMonths < 36) {
+            return [27 => '0', 28 => '0', 62 => '1845-01-01'];
+        }
+
+        if ($date29 === '1800-01-01') {
+            return [27 => '21', 28 => '21', 62 => '1800-01-01'];
+        }
+
+        return [62 => $date29];
     }
 
     private function correctError328(array $fields, int $line): array
